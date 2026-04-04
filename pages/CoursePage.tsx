@@ -25,11 +25,12 @@ import {
   Download,
   HelpCircle,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getTutorResponse, generateSpeech } from '../services/geminiService';
-import { ChatMessage, Course, Module, Lesson } from '../types';
+import { ChatMessage, Course, Module, Lesson, ChatSession } from '../types';
 
 interface CoursePageProps {
   initialCourseId?: string | null;
@@ -43,6 +44,7 @@ export const CoursePage: React.FC<CoursePageProps> = ({ initialCourseId, courses
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTutorMinimized, setIsTutorMinimized] = useState(false);
+  const [tutorView, setTutorView] = useState<'chat' | 'history'>('chat');
   
   // AI Tutor State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -53,6 +55,21 @@ export const CoursePage: React.FC<CoursePageProps> = ({ initialCourseId, courses
   const [isReadingId, setIsReadingId] = useState<string | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+  // History state
+  const [sessions, setSessions] = useState<ChatSession[]>(() => {
+    const saved = localStorage.getItem('enara_chat_sessions');
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved).map((s: any) => ({ 
+        ...s, 
+        timestamp: new Date(s.timestamp),
+        messages: s.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
+      }));
+    } catch (e) {
+      return [];
+    }
+  });
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -145,10 +162,25 @@ export const CoursePage: React.FC<CoursePageProps> = ({ initialCourseId, courses
   };
 
   const handleStartLesson = (module: Module, lesson: Lesson) => {
+    // Save current session to history if it has user messages
+    if (chatMessages.some(m => m.role === 'user')) {
+      const newSession: ChatSession = {
+        id: Date.now().toString(),
+        title: selectedLesson?.title || 'General Chat',
+        messages: [...chatMessages],
+        timestamp: new Date(),
+        lessonTitle: selectedLesson?.title
+      };
+      const updatedSessions = [newSession, ...sessions].slice(0, 20);
+      setSessions(updatedSessions);
+      localStorage.setItem('enara_chat_sessions', JSON.stringify(updatedSessions));
+    }
+
     setSelectedModule(module);
     setSelectedLesson(lesson);
     setView('lesson');
     setIsSidebarOpen(false);
+    setTutorView('chat');
     setChatMessages([
       { id: '1', role: 'ai', text: `Welcome to **${lesson.title}**! I'm here to help you master this topic. What would you like to start with?`, timestamp: new Date() }
     ]);
@@ -167,42 +199,42 @@ export const CoursePage: React.FC<CoursePageProps> = ({ initialCourseId, courses
 
   if (view === 'selection') {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] p-8">
+      <div className="min-h-screen bg-[#F8FAFC] p-4 sm:p-8">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">Your Courses</h1>
-            <p className="text-slate-500">Pick up where you left off or start something new.</p>
+          <div className="mb-8 sm:mb-12">
+            <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-2">Your Courses</h1>
+            <p className="text-sm sm:text-base text-slate-500">Pick up where you left off or start something new.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
             {courses.map(course => {
               const progress = calculateOverallProgress(course);
               return (
                 <motion.div 
                   key={course.id}
                   whileHover={{ y: -8 }}
-                  className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+                  className="bg-white rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-8 border border-slate-100 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
                   onClick={() => handleSelectCourse(course)}
                 >
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="w-14 h-14 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center group-hover:bg-teal-500 group-hover:text-white transition-all">
-                      <BookOpen size={28} />
+                  <div className="flex justify-between items-start mb-4 sm:mb-6">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center group-hover:bg-teal-500 group-hover:text-white transition-all">
+                      <BookOpen size={24} className="sm:w-7 sm:h-7" />
                     </div>
-                    <span className="px-3 py-1 bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-widest rounded-full">
+                    <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-slate-50 text-slate-500 text-[8px] sm:text-[10px] font-bold uppercase tracking-widest rounded-full">
                       {course.subject}
                     </span>
                   </div>
                   
-                  <h3 className="text-2xl font-bold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">
+                  <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">
                     {course.title}
                   </h3>
                   
-                  <div className="mt-8 space-y-4">
-                    <div className="flex justify-between text-xs font-bold text-slate-400 uppercase">
+                  <div className="mt-6 sm:mt-8 space-y-3 sm:space-y-4">
+                    <div className="flex justify-between text-[10px] sm:text-xs font-bold text-slate-400 uppercase">
                       <span>Course Progress</span>
                       <span>{progress}%</span>
                     </div>
-                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 sm:h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
@@ -211,13 +243,13 @@ export const CoursePage: React.FC<CoursePageProps> = ({ initialCourseId, courses
                     </div>
                   </div>
 
-                  <div className="mt-8 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-slate-400 text-xs font-medium">
-                      <Layers size={14} />
+                  <div className="mt-6 sm:mt-8 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-slate-400 text-[10px] sm:text-xs font-medium">
+                      <Layers size={12} sm:size={14} />
                       <span>{course.modules.length} Modules</span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center group-hover:bg-teal-600 transition-all">
-                      <ArrowRight size={20} />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-900 text-white flex items-center justify-center group-hover:bg-teal-600 transition-all">
+                      <ArrowRight size={16} sm:size={20} />
                     </div>
                   </div>
                 </motion.div>
@@ -234,7 +266,7 @@ export const CoursePage: React.FC<CoursePageProps> = ({ initialCourseId, courses
   const overallProgress = calculateOverallProgress(selectedCourse);
 
   return (
-    <div className="flex h-[calc(100vh-120px)] overflow-hidden bg-[#F8FAFC]">
+    <div className="flex h-[calc(100vh-120px)] overflow-hidden bg-[#F8FAFC] relative">
       {/* Left Sidebar: Chapters & Lessons (Toggle Menu) */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -629,97 +661,172 @@ export const CoursePage: React.FC<CoursePageProps> = ({ initialCourseId, courses
       </div>
 
       {/* Right Sidebar: AI Tutor */}
-      <motion.aside
-        animate={{ width: isTutorMinimized ? 80 : 384 }}
-        className="bg-white border-l border-slate-100 flex flex-col overflow-hidden relative"
-      >
-        <div className={`p-4 border-b border-slate-50 flex items-center shrink-0 ${isTutorMinimized ? 'justify-center' : 'justify-between'}`}>
-          {!isTutorMinimized ? (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center">
-                  <Bot size={18} />
-                </div>
-                <h4 className="text-sm font-bold text-slate-900">AI Tutor</h4>
-              </div>
-              <button 
-                onClick={() => setIsTutorMinimized(true)}
-                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-all"
-                title="Minimize Tutor"
-              >
-                <Minimize2 size={20} />
-              </button>
-            </>
-          ) : (
-            <button 
-              onClick={() => setIsTutorMinimized(false)}
-              className="w-12 h-12 rounded-2xl bg-teal-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-teal-500/20 group relative"
-              title="Expand Tutor"
-            >
-              <Bot size={24} />
-              <div className="absolute -right-1 -top-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse" />
-            </button>
-          )}
-        </div>
-
+      <AnimatePresence>
         {!isTutorMinimized && (
           <>
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {chatMessages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl p-4 text-sm ${
-                    msg.role === 'user' 
-                    ? 'bg-slate-900 text-white rounded-tr-none' 
-                    : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'
-                  }`}>
-                    {msg.text}
-                    {msg.role === 'ai' && (
-                      <div className="mt-3 flex items-center gap-2 pt-3 border-t border-slate-200/50">
-                        <button 
-                          onClick={() => handleReadAloud(msg)}
-                          className={`p-1.5 rounded-lg transition-colors ${isReadingId === msg.id ? 'bg-teal-100 text-teal-600' : 'hover:bg-slate-200 text-slate-400'}`}
-                        >
-                          <Volume2 size={14} />
-                        </button>
+            {/* Mobile Backdrop for Tutor */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsTutorMinimized(true)}
+              className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[60] lg:hidden"
+            />
+            <motion.aside
+              initial={{ x: 400 }}
+              animate={{ x: 0 }}
+              exit={{ x: 400 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed lg:relative top-0 right-0 bottom-0 w-[320px] sm:w-[384px] bg-white border-l border-slate-100 flex flex-col z-[70] shadow-2xl lg:shadow-none"
+            >
+              <div className="p-4 border-b border-slate-50 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center">
+                    <Bot size={18} />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900">AI Tutor</h4>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => setTutorView(tutorView === 'chat' ? 'history' : 'chat')}
+                    className={`p-2 rounded-xl transition-all ${tutorView === 'history' ? 'bg-teal-50 text-teal-600' : 'hover:bg-slate-100 text-slate-400'}`}
+                    title="Chat History"
+                  >
+                    <History size={18} />
+                  </button>
+                  <button 
+                    onClick={() => setIsTutorMinimized(true)}
+                    className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-all"
+                    title="Minimize Tutor"
+                  >
+                    <Minimize2 size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 no-scrollbar">
+                {tutorView === 'chat' ? (
+                  <>
+                    {chatMessages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[85%] rounded-2xl p-4 text-sm ${
+                          msg.role === 'user' 
+                          ? 'bg-slate-900 text-white rounded-tr-none' 
+                          : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'
+                        }`}>
+                          {msg.text}
+                          {msg.role === 'ai' && (
+                            <div className="mt-3 flex items-center gap-2 pt-3 border-t border-slate-200/50">
+                              <button 
+                                onClick={() => handleReadAloud(msg)}
+                                className={`p-1.5 rounded-lg transition-colors ${isReadingId === msg.id ? 'bg-teal-100 text-teal-600' : 'hover:bg-slate-200 text-slate-400'}`}
+                              >
+                                <Volume2 size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {isTyping && (
+                      <div className="flex justify-start">
+                        <div className="bg-slate-50 rounded-2xl rounded-tl-none p-4 border border-slate-100">
+                          <div className="flex gap-1">
+                            <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></div>
+                            <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                            <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                          </div>
+                        </div>
                       </div>
                     )}
-                  </div>
-                </div>
-              ))}
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-slate-50 rounded-2xl rounded-tl-none p-4 border border-slate-100">
-                    <div className="flex gap-1">
-                      <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></div>
-                      <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                      <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Recent Sessions</h5>
+                      {sessions.length > 0 && (
+                        <button 
+                          onClick={() => {
+                            setSessions([]);
+                            localStorage.removeItem('enara_chat_sessions');
+                          }}
+                          className="text-[10px] font-bold text-rose-500 hover:text-rose-600 transition-colors"
+                        >
+                          Clear All
+                        </button>
+                      )}
                     </div>
+                    {sessions.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
+                          <History size={24} />
+                        </div>
+                        <p className="text-xs text-slate-400">No chat history yet.</p>
+                      </div>
+                    ) : (
+                      sessions.map((session) => (
+                        <button
+                          key={session.id}
+                          onClick={() => {
+                            setChatMessages(session.messages);
+                            setTutorView('chat');
+                          }}
+                          className="w-full text-left p-4 rounded-2xl border border-slate-100 hover:border-teal-200 hover:bg-teal-50/30 transition-all group"
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <p className="text-sm font-bold text-slate-900 group-hover:text-teal-700 transition-colors truncate pr-2">
+                              {session.title}
+                            </p>
+                            <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                              {session.timestamp.toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 line-clamp-2">
+                            {session.messages[session.messages.length - 1].text}
+                          </p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {tutorView === 'chat' && (
+                <div className="p-4 sm:p-6 border-t border-slate-50 bg-white">
+                  <div className="relative">
+                    <textarea 
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
+                      placeholder="Ask anything..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white focus:border-teal-500 transition-all resize-none h-24"
+                    />
+                    <button 
+                      onClick={() => handleSendMessage()}
+                      className="absolute right-3 bottom-3 p-2 bg-slate-900 text-white rounded-xl hover:bg-teal-600 transition-all"
+                    >
+                      <Send size={18} />
+                    </button>
                   </div>
                 </div>
               )}
-              <div ref={chatEndRef} />
-            </div>
-
-            <div className="p-6 border-t border-slate-50 bg-white">
-              <div className="relative">
-                <textarea 
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
-                  placeholder="Ask anything..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white focus:border-teal-500 transition-all resize-none h-24"
-                />
-                <button 
-                  onClick={() => handleSendMessage()}
-                  className="absolute right-3 bottom-3 p-2 bg-slate-900 text-white rounded-xl hover:bg-teal-600 transition-all"
-                >
-                  <Send size={18} />
-                </button>
-              </div>
-            </div>
+            </motion.aside>
           </>
         )}
-      </motion.aside>
+      </AnimatePresence>
+
+      {/* Minimized Tutor Button (Floating on Mobile) */}
+      {isTutorMinimized && (
+        <button 
+          onClick={() => setIsTutorMinimized(false)}
+          className="fixed lg:absolute bottom-6 right-6 w-14 h-14 rounded-2xl bg-teal-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-2xl shadow-teal-500/40 z-[50]"
+          title="Expand Tutor"
+        >
+          <Bot size={28} />
+          <div className="absolute -right-1 -top-1 w-4 h-4 bg-rose-500 rounded-full border-2 border-white animate-pulse" />
+        </button>
+      )}
     </div>
   );
 };

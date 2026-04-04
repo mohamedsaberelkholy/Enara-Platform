@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Users, 
@@ -15,6 +14,7 @@ import {
   AlertCircle, 
   MoreHorizontal,
   Plus,
+  PlusCircle,
   FileText,
   Zap,
   Building2,
@@ -26,7 +26,28 @@ import {
   Info,
   Calendar,
   Globe,
-  Monitor
+  Monitor,
+  LayoutDashboard,
+  BarChart3,
+  ShieldCheck,
+  Activity,
+  DollarSign,
+  PieChart as PieChartIcon,
+  Briefcase,
+  AlertTriangle,
+  ArrowRight,
+  Sparkles,
+  SearchCheck,
+  Cpu,
+  MousePointer2,
+  History,
+  ChevronDown,
+  Bell,
+  X,
+  Settings,
+  CreditCard,
+  Ban,
+  RotateCcw
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -43,712 +64,745 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  ComposedChart,
+  Scatter
 } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 
-// Mock Data
-const KPI_DATA = [
-  { label: 'Total Students', value: '128,492', trend: '+12.5%', isUp: true, subtext: 'vs last month', color: 'blue' },
-  { label: 'Avg Score', value: '76.4%', trend: '+2.1%', isUp: true, subtext: 'vs last month', color: 'emerald' },
-  { label: 'Avg Progress', value: '64.2%', trend: '-1.4%', isUp: false, subtext: 'vs last month', color: 'indigo' },
-  { label: 'Study Time', value: '14.2h', trend: '+8.3%', isUp: true, subtext: 'per week avg', color: 'violet' },
-  { label: 'Completion Rate', value: '89.1%', trend: '+0.5%', isUp: true, subtext: 'vs last month', color: 'amber' },
+// --- Mock Data ---
+
+const EXECUTIVE_KPIS = [
+  { id: 'institutions', label: 'Partner Institutions', value: '482', change: '+12', status: 'success', trend: [400, 410, 425, 440, 460, 482] },
+  { id: 'students', label: 'Enrolled Students', value: '1.2M', change: '+8.1%', status: 'success', trend: [1.0, 1.05, 1.1, 1.12, 1.15, 1.2] },
+  { id: 'mau', label: 'Monthly Active Students', value: '842k', change: '+12.4%', status: 'success', trend: [700, 720, 750, 780, 810, 842] },
+  { id: 'completion', label: 'Course Completion', value: '78.5%', change: '-1.2%', status: 'warning', trend: [80, 79.5, 79, 78.8, 78.6, 78.5] },
+  { id: 'engagement', label: 'Avg Engagement Score', value: '8.4', change: '+0.2', status: 'success', trend: [8.0, 8.1, 8.2, 8.2, 8.3, 8.4] },
+  { id: 'at_risk', label: 'At-Risk Students', value: '12,492', change: '+420', status: 'danger', trend: [10000, 10500, 11000, 11500, 12000, 12492] },
+  { id: 'interventions', label: 'Open Interventions', value: '842', change: '-12%', status: 'success', trend: [1000, 950, 920, 890, 860, 842] },
+  { id: 'ai_sessions', label: 'Active AI Sessions', value: '42.1k', change: '+24%', status: 'success', trend: [30, 32, 35, 38, 40, 42.1] },
+  { id: 'uptime', label: 'Platform Uptime', value: '99.98%', change: 'Stable', status: 'success', trend: [99.9, 99.95, 99.98, 99.98, 99.98, 99.98] },
+  { id: 'partner_credits', label: 'Total Partner Credits', value: '2.4M', change: '+120k', status: 'success', trend: [2.0, 2.1, 2.2, 2.3, 2.35, 2.4] },
 ];
 
-const ACTIVITY_DATA = [
-  { name: 'Mon', active: 42000, study: 2400 },
-  { name: 'Tue', active: 45000, study: 2800 },
-  { name: 'Wed', active: 38000, study: 2100 },
-  { name: 'Thu', active: 51000, study: 3200 },
-  { name: 'Fri', active: 48000, study: 2900 },
-  { name: 'Sat', active: 32000, study: 1800 },
-  { name: 'Sun', active: 28000, study: 1500 },
+const GROWTH_DATA = [
+  { name: 'Sep', students: 0.9, institutions: 380, mau: 650, churn: 0.8, retention: 92 },
+  { name: 'Oct', students: 0.95, institutions: 405, mau: 680, churn: 0.7, retention: 93 },
+  { name: 'Nov', students: 1.02, institutions: 420, mau: 720, churn: 0.6, retention: 93.5 },
+  { name: 'Dec', students: 1.05, institutions: 435, mau: 700, churn: 0.9, retention: 92.8 },
+  { name: 'Jan', students: 1.12, institutions: 455, mau: 790, churn: 0.5, retention: 94 },
+  { name: 'Feb', students: 1.18, institutions: 470, mau: 820, churn: 0.4, retention: 94.2 },
+  { name: 'Mar', students: 1.2, institutions: 482, mau: 842, churn: 0.4, retention: 94.2 },
 ];
 
-const COHORT_PERFORMANCE = [
-  { name: 'CS-2024-A', score: 82, progress: 75 },
-  { name: 'BA-2024-B', score: 74, progress: 62 },
-  { name: 'ENG-2024-C', score: 68, progress: 58 },
-  { name: 'MED-2024-D', score: 88, progress: 82 },
-  { name: 'LAW-2024-E', score: 71, progress: 65 },
+const INSTITUTION_PERFORMANCE = [
+  { name: 'Global Tech Academy', students: '42.5k', active: '38.2k', retention: '96.4%', completion: '82.1%', engagement: 8.8, risk: 'Low', credits: '842k', hoursSaved: '12,450', status: 'Healthy', lastActive: '2m ago' },
+  { name: 'Future Skills Inst.', students: '28.4k', active: '24.1k', retention: '92.1%', completion: '74.5%', engagement: 7.9, risk: 'Medium', credits: '124k', hoursSaved: '8,210', status: 'Warning', lastActive: '15m ago' },
+  { name: 'Elite Learning Corp', students: '18.2k', active: '16.8k', retention: '98.2%', completion: '88.4%', engagement: 9.2, risk: 'Low', credits: '450k', hoursSaved: '6,840', status: 'Healthy', lastActive: '5m ago' },
+  { name: 'Standard University', students: '32.1k', active: '22.4k', retention: '84.5%', completion: '62.8%', engagement: 6.4, risk: 'High', credits: '12k', hoursSaved: '4,120', status: 'At Risk', lastActive: '1h ago' },
+  { name: 'Creative Arts Hub', students: '12.4k', active: '10.2k', retention: '91.2%', completion: '76.2%', engagement: 8.1, risk: 'Low', credits: '210k', hoursSaved: '3,950', status: 'Healthy', lastActive: '12m ago' },
 ];
 
-const PARTNER_ENGAGEMENT = [
-  { name: 'Global Tech Academy', value: 35 },
-  { name: 'Future Skills Inst.', value: 25 },
-  { name: 'Elite Learning Corp', value: 20 },
-  { name: 'Standard University', value: 15 },
-  { name: 'Others', value: 5 },
+const BRANCH_PERFORMANCE = [
+  { name: 'Cairo Central', institution: 'Global Tech', health: 94, trend: 'up', students: 4200 },
+  { name: 'Dubai North', institution: 'Elite Learning', health: 92, trend: 'up', students: 2800 },
+  { name: 'Riyadh East', institution: 'Future Skills', health: 72, trend: 'down', students: 3100 },
+  { name: 'London West', institution: 'Standard Uni', health: 58, trend: 'down', students: 1200 },
+  { name: 'Amman South', institution: 'Global Tech', health: 88, trend: 'stable', students: 1500 },
 ];
 
-const COLORS = ['#0ea5e9', '#10b981', '#6366f1', '#8b5cf6', '#f59e0b'];
-
-const RISK_STUDENTS = [
-  { name: 'Alex Johnson', partner: 'Global Tech', programme: 'Data Science', progress: 12, score: 45, lastActive: '2d ago', status: 'High Risk' },
-  { name: 'Maria Garcia', partner: 'Future Skills', programme: 'UX Design', progress: 24, score: 52, lastActive: '1d ago', status: 'Medium Risk' },
-  { name: 'James Wilson', partner: 'Elite Learning', programme: 'Cloud Arch', progress: 8, score: 38, lastActive: '4d ago', status: 'High Risk' },
-  { name: 'Sarah Chen', partner: 'Global Tech', programme: 'AI Ethics', progress: 45, score: 58, lastActive: '6h ago', status: 'Low Risk' },
+const RISK_CATEGORIES = [
+  { name: 'High Risk', value: 2492, color: '#ef4444' },
+  { name: 'Medium Risk', value: 4200, color: '#f59e0b' },
+  { name: 'Low Risk', value: 5800, color: '#10b981' },
 ];
 
-const PARTNER_PERFORMANCE = [
-  { name: 'Global Tech Academy', students: 42500, score: 78.2, progress: 68.4, studyTime: 15.2, completion: 92.4, status: 'Active' },
-  { name: 'Future Skills Inst.', students: 28400, score: 74.5, progress: 62.1, studyTime: 12.8, completion: 88.2, status: 'Active' },
-  { name: 'Elite Learning Corp', students: 18200, score: 81.2, progress: 72.5, studyTime: 16.4, completion: 94.1, status: 'Active' },
-  { name: 'Standard University', students: 32100, score: 69.8, progress: 58.2, studyTime: 11.5, completion: 82.5, status: 'Warning' },
-  { name: 'Creative Arts Hub', students: 7292, score: 76.4, progress: 64.2, studyTime: 14.2, completion: 89.1, status: 'Active' },
+const AI_ANALYTICS = [
+  { name: 'AI Tutor Sessions', value: '428k', trend: '+18%' },
+  { name: 'Avg Session Duration', value: '14.2m', trend: '+4%' },
+  { name: 'Daily Active Usage', value: '84%', trend: '+2%' },
+  { name: 'Response Satisfaction', value: '4.8/5', trend: '+0.1' },
 ];
 
-export const EnaraAdminDashboard: React.FC = () => {
-  const [isAddProviderOpen, setIsAddProviderOpen] = useState(false);
-  const [providerData, setProviderData] = useState({
-    orgName: '',
-    orgType: 'School',
-    otherType: '',
-    adminName: '',
-    adminEmail: '',
-    username: '',
-    password: ''
-  });
-  const [showCredentials, setShowCredentials] = useState(false);
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+const SALES_PIPELINE = [
+  { label: 'New Leads', value: '42', change: '+8' },
+  { label: 'In Pilot', value: '18', change: '+3' },
+  { label: 'Pilot Conversion', value: '64%', change: '+5%' },
+];
 
-  const generateCredentials = () => {
-    const randomStr = Math.random().toString(36).substring(7);
-    const username = `admin_${providerData.orgName.toLowerCase().replace(/\s+/g, '_')}_${randomStr}`;
-    const password = Math.random().toString(36).substring(2, 10) + '!' + Math.floor(Math.random() * 100);
-    setProviderData(prev => ({ ...prev, username, password }));
-    setShowCredentials(true);
-  };
+const PARTNER_CREDITS_MANAGEMENT = [
+  { id: 'gt-01', name: 'Global Tech Academy', total: '1.2M', used: '358k', remaining: '842k', status: 'Healthy', lastTopUp: '12 days ago', plan: 'Enterprise', nextRenewal: '2026-05-15' },
+  { id: 'fs-01', name: 'Future Skills Inst.', total: '500k', used: '376k', remaining: '124k', status: 'Warning', lastTopUp: '45 days ago', plan: 'Pro', nextRenewal: '2026-04-20' },
+  { id: 'el-01', name: 'Elite Learning Corp', total: '800k', used: '350k', remaining: '450k', status: 'Healthy', lastTopUp: '5 days ago', plan: 'Enterprise', nextRenewal: '2026-06-01' },
+  { id: 'su-01', name: 'Standard University', total: '200k', used: '188k', remaining: '12k', status: 'Critical', lastTopUp: '60 days ago', plan: 'Basic', nextRenewal: '2026-04-10' },
+  { id: 'ca-01', name: 'Creative Arts Hub', total: '300k', used: '90k', remaining: '210k', status: 'Healthy', lastTopUp: '20 days ago', plan: 'Pro', nextRenewal: '2026-05-01' },
+];
 
-  const copyToClipboard = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
+const ALERTS = [
+  { id: 2, type: 'warning', title: 'Product Issue', message: 'AI Latency spike in EMEA region (>800ms)', time: '45m ago' },
+  { id: 3, type: 'info', title: 'Pilot Deadline', message: 'Future Skills pilot ends in 3 days', time: '2h ago' },
+  { id: 4, type: 'success', title: 'Expansion', message: 'Global Tech Academy added 5,000 seats', time: '4h ago' },
+  { id: 5, type: 'danger', title: 'Critical Drop', message: 'Riyadh East branch attendance drop (-22%)', time: '6h ago' },
+];
 
-  const handleAddProvider = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert(`Provider ${providerData.orgName} onboarded successfully! Credentials sent to ${providerData.adminEmail}`);
-    setIsAddProviderOpen(false);
-    setShowCredentials(false);
-    setProviderData({
-      orgName: '',
-      orgType: 'School',
-      otherType: '',
-      adminName: '',
-      adminEmail: '',
-      username: '',
-      password: ''
-    });
-  };
+// --- Components ---
+
+const KPICard: React.FC<{ kpi: typeof EXECUTIVE_KPIS[0] }> = ({ kpi }) => {
+  const isPositive = kpi.change.startsWith('+') || kpi.change === 'Stable';
+  
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -8, shadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }}
+      className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between min-w-[240px] transition-all duration-300"
+    >
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{kpi.label}</span>
+          <h3 className="text-2xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
+        </div>
+        <div className={`p-2 rounded-2xl ${
+          kpi.status === 'success' ? 'bg-emerald-50 text-emerald-600' :
+          kpi.status === 'warning' ? 'bg-amber-50 text-amber-600' :
+          'bg-rose-50 text-rose-600'
+        }`}>
+          {kpi.status === 'success' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-2 mb-4">
+        <div className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+          isPositive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+        }`}>
+          {isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+          {kpi.change}
+        </div>
+        <span className="text-[10px] text-slate-400 font-medium">vs last month</span>
+      </div>
+      
+      <div className="h-10 w-full opacity-40">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={kpi.trend.map((v, i) => ({ v, i }))}>
+            <Area 
+              type="monotone" 
+              dataKey="v" 
+              stroke={kpi.status === 'danger' ? '#ef4444' : '#6366f1'} 
+              fill={kpi.status === 'danger' ? '#fee2e2' : '#e0e7ff'} 
+              strokeWidth={2} 
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </motion.div>
+  );
+};
+
+const SectionHeader: React.FC<{ title: string; subtitle?: string; action?: React.ReactNode }> = ({ title, subtitle, action }) => (
+  <div className="flex items-center justify-between mb-6">
+    <div>
+      <h2 className="text-lg font-black text-slate-900 tracking-tight">{title}</h2>
+      {subtitle && <p className="text-sm text-slate-500 font-medium">{subtitle}</p>}
+    </div>
+    {action}
+  </div>
+);
+
+interface EnaraAdminDashboardProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export const EnaraAdminDashboard: React.FC<EnaraAdminDashboardProps> = ({ onNavigate }) => {
+  const [isAlertPanelOpen, setIsAlertPanelOpen] = useState(true);
+  const [selectedPartnerForCredits, setSelectedPartnerForCredits] = useState<typeof PARTNER_CREDITS_MANAGEMENT[0] | null>(null);
+  const [topUpAmount, setTopUpAmount] = useState('100000');
 
   return (
-    <div className="p-6 lg:p-10 bg-slate-50 min-h-screen">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Enara Partners Dashboard</h1>
-          <p className="text-slate-500 mt-1">Strategic intelligence and operational oversight across the ecosystem.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsAddProviderOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
-          >
-            <Plus size={18} />
-            Add Partner
-          </button>
-          <button className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all">
-            <Download size={20} />
-          </button>
-        </div>
-      </div>
-
-      {/* Sticky Filter Bar */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border border-slate-200 rounded-2xl p-3 mb-8 flex flex-wrap items-center gap-3 shadow-sm">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
-          <Calendar size={16} className="text-slate-400" />
-          <select className="bg-transparent text-sm font-medium text-slate-700 outline-none">
-            <option>Last 30 Days</option>
-            <option>Last 90 Days</option>
-            <option>Year to Date</option>
-            <option>All Time</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
-          <Building2 size={16} className="text-slate-400" />
-          <select className="bg-transparent text-sm font-medium text-slate-700 outline-none">
-            <option>All Partners</option>
-            <option>Global Tech Academy</option>
-            <option>Future Skills Inst.</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
-          <Globe size={16} className="text-slate-400" />
-          <select className="bg-transparent text-sm font-medium text-slate-700 outline-none">
-            <option>All Regions</option>
-            <option>EMEA</option>
-            <option>APAC</option>
-            <option>Americas</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
-          <Monitor size={16} className="text-slate-400" />
-          <select className="bg-transparent text-sm font-medium text-slate-700 outline-none">
-            <option>All Delivery Modes</option>
-            <option>Online</option>
-            <option>Blended</option>
-            <option>In-Person</option>
-          </select>
-        </div>
-        <div className="ml-auto flex items-center gap-4">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-            <RefreshCw size={10} />
-            Updated 2m ago
-          </span>
-        </div>
-      </div>
-
-      {/* KPI Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-10">
-        {KPI_DATA.map((kpi, idx) => (
-          <motion.div 
-            key={idx}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all group"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className={`w-12 h-12 rounded-2xl bg-${kpi.color}-50 flex items-center justify-center text-${kpi.color}-600 group-hover:scale-110 transition-transform`}>
-                {idx === 0 && <Users size={24} />}
-                {idx === 1 && <Award size={24} />}
-                {idx === 2 && <Target size={24} />}
-                {idx === 3 && <Clock size={24} />}
-                {idx === 4 && <CheckCircle2 size={24} />}
-              </div>
-              <button className="text-slate-300 hover:text-slate-600 transition-colors">
-                <Info size={16} />
-              </button>
+    <div className="flex h-full bg-[#F8FAFC] overflow-hidden font-sans selection:bg-indigo-100 selection:text-indigo-900">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar scroll-smooth">
+        
+        {/* Dashboard Filters & Controls */}
+        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 px-4 sm:px-8 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar pb-1 md:pb-0">
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all group">
+              <Calendar size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+              <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Last 30 Days</span>
+              <ChevronDown size={14} className="text-slate-400" />
             </div>
-            <p className="text-sm font-medium text-slate-500">{kpi.label}</p>
-            <div className="flex items-baseline gap-2 mt-1">
-              <h3 className="text-2xl font-bold text-slate-900">{kpi.value}</h3>
-              <span className={`text-xs font-bold flex items-center gap-0.5 ${kpi.isUp ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {kpi.isUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                {kpi.trend}
-              </span>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-wider">{kpi.subtext}</p>
             
-            {/* Mini Sparkline Placeholder */}
-            <div className="mt-4 h-1 w-full bg-slate-50 rounded-full overflow-hidden">
-              <div className={`h-full bg-${kpi.color}-500`} style={{ width: '65%' }}></div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200/60 cursor-pointer hover:bg-slate-100 transition-all group">
+              <Filter size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+              <span className="text-xs font-bold text-slate-700 whitespace-nowrap">All Regions</span>
+              <ChevronDown size={14} className="text-slate-400" />
             </div>
-          </motion.div>
-        ))}
-      </div>
+          </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-        {/* Activity Trend */}
-        <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-xl font-bold text-slate-900">Student Activity Trend</h3>
-              <p className="text-sm text-slate-500">Daily active learners and study hours across all partners.</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-teal-500"></div>
-                <span className="text-xs font-bold text-slate-600">Active Students</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
-                <span className="text-xs font-bold text-slate-600">Study Hours</span>
-              </div>
-            </div>
-          </div>
-          <div className="h-[350px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={ACTIVITY_DATA}>
-                <defs>
-                  <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                />
-                <Area type="monotone" dataKey="active" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorActive)" />
-                <Line type="monotone" dataKey="study" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: '#fff' }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Engagement Distribution */}
-        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-          <h3 className="text-xl font-bold text-slate-900 mb-1">Partner Distribution</h3>
-          <p className="text-sm text-slate-500 mb-8">Engagement share by top education providers.</p>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={PARTNER_ENGAGEMENT}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {PARTNER_ENGAGEMENT.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="space-y-3 mt-4">
-            {PARTNER_ENGAGEMENT.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[idx] }}></div>
-                  <span className="text-xs font-medium text-slate-600">{item.name}</span>
-                </div>
-                <span className="text-xs font-bold text-slate-900">{item.value}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Risk & Actionable Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-        <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-xl font-bold text-slate-900">Operational Intelligence</h3>
-              <p className="text-sm text-slate-500">Learners requiring immediate intervention based on risk scoring.</p>
-            </div>
-            <button className="text-sm font-bold text-teal-600 hover:text-teal-700">View All Alerts</button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-50">
-                  <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Student</th>
-                  <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Partner</th>
-                  <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Progress</th>
-                  <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Score</th>
-                  <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Risk</th>
-                  <th className="text-right py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {RISK_STUDENTS.map((student, idx) => (
-                  <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
-                    <td className="py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">
-                          {student.name.split(' ').map(n => n[0]).join('')}
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">{student.name}</p>
-                          <p className="text-[10px] text-slate-400">{student.programme}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 text-sm text-slate-600">{student.partner}</td>
-                    <td className="py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${student.progress < 20 ? 'bg-rose-500' : 'bg-amber-500'}`} 
-                            style={{ width: `${student.progress}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs font-bold text-slate-700">{student.progress}%</span>
-                      </div>
-                    </td>
-                    <td className="py-4 text-sm font-bold text-slate-900">{student.score}%</td>
-                    <td className="py-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                        student.status === 'High Risk' ? 'bg-rose-50 text-rose-600' : 
-                        student.status === 'Medium Risk' ? 'bg-amber-50 text-amber-600' : 
-                        'bg-emerald-50 text-emerald-600'
-                      }`}>
-                        {student.status}
-                      </span>
-                    </td>
-                    <td className="py-4 text-right">
-                      <button className="p-2 text-slate-400 hover:text-teal-600 transition-colors">
-                        <ChevronRight size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Outcomes Snapshot */}
-        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm">
-          <h3 className="text-xl font-bold text-slate-900 mb-6">Outcomes Snapshot</h3>
-          <div className="space-y-6">
-            <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active vs Inactive</span>
-                <span className="text-xs font-bold text-emerald-600">+4.2%</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <p className="text-2xl font-bold text-slate-900">84,291</p>
-                  <p className="text-[10px] text-slate-400 font-medium">ACTIVE LEARNERS</p>
-                </div>
-                <div className="w-px h-10 bg-slate-200"></div>
-                <div className="flex-1">
-                  <p className="text-2xl font-bold text-slate-400">44,201</p>
-                  <p className="text-[10px] text-slate-400 font-medium">INACTIVE</p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-bold text-slate-700">Completion Funnel</span>
-                <span className="text-xs text-slate-400">89.1% Overall</span>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { label: 'Enrolled', value: 100, color: 'bg-slate-200' },
-                  { label: 'Active', value: 84, color: 'bg-teal-400' },
-                  { label: 'Progressing', value: 62, color: 'bg-indigo-400' },
-                  { label: 'Completed', value: 48, color: 'bg-emerald-400' },
-                ].map((item, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                      <span>{item.label}</span>
-                      <span>{item.value}%</span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden">
-                      <div className={`h-full ${item.color}`} style={{ width: `${item.value}%` }}></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="pt-4">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Top Performing Cohorts</h4>
-              <div className="space-y-3">
-                {COHORT_PERFORMANCE.slice(0, 3).map((cohort, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-emerald-50/30 rounded-2xl border border-emerald-100/50">
-                    <span className="text-sm font-bold text-slate-700">{cohort.name}</span>
-                    <span className="text-sm font-bold text-emerald-600">{cohort.score}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Partner Performance Table */}
-      <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm mb-10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h3 className="text-xl font-bold text-slate-900">Partner Performance Matrix</h3>
-            <p className="text-sm text-slate-500">Comparative analysis of all education providers in the ecosystem.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search partners..." 
-                className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
-              />
-            </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-sm font-bold border border-slate-100">
-              <Filter size={16} />
-              Filter
+          <div className="flex items-center gap-3">
+            <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95">
+              <Download size={14} /> <span className="hidden sm:inline">Export Report</span><span className="sm:hidden">Export</span>
+            </button>
+            <button 
+              onClick={() => onNavigate?.('integrations')}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-2xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95"
+            >
+              <PlusCircle size={16} /> <span className="hidden sm:inline">Add Partner</span><span className="sm:hidden">Partner</span>
             </button>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-50">
-                <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Partner Name</th>
-                <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Students</th>
-                <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Avg Score</th>
-                <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Progress</th>
-                <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Study Time</th>
-                <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Completion</th>
-                <th className="text-left py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="text-right py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {PARTNER_PERFORMANCE.map((partner, idx) => (
-                <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
-                  <td className="py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
-                        <Building2 size={20} />
-                      </div>
-                      <span className="text-sm font-bold text-slate-900">{partner.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-5 text-sm font-medium text-slate-600">{partner.students.toLocaleString()}</td>
-                  <td className="py-5">
-                    <span className="text-sm font-bold text-slate-900">{partner.score}%</span>
-                  </td>
-                  <td className="py-5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-indigo-500" style={{ width: `${partner.progress}%` }}></div>
-                      </div>
-                      <span className="text-xs font-bold text-slate-700">{partner.progress}%</span>
-                    </div>
-                  </td>
-                  <td className="py-5 text-sm font-medium text-slate-600">{partner.studyTime}h/wk</td>
-                  <td className="py-5 text-sm font-bold text-emerald-600">{partner.completion}%</td>
-                  <td className="py-5">
-                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                      partner.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                    }`}>
-                      {partner.status}
-                    </span>
-                  </td>
-                  <td className="py-5 text-right">
-                    <button className="p-2 text-slate-400 hover:text-slate-600">
-                      <MoreHorizontal size={18} />
-                    </button>
-                  </td>
-                </tr>
+
+        <div className="p-4 sm:p-8 space-y-8 sm:space-y-12 max-w-[1600px] mx-auto w-full">
+          
+          {/* Executive KPI Header */}
+          <section>
+            <div className="flex items-end justify-between mb-8">
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight font-crimson">Executive KPI Overview</h2>
+                <p className="text-sm text-slate-500 font-medium mt-1">Real-time performance metrics across the Enara ecosystem.</p>
+              </div>
+              <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <RefreshCw size={12} className="animate-spin-slow" />
+                Live Updates Enabled
+              </div>
+            </div>
+            <div className="flex gap-6 overflow-x-auto pb-6 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+              {EXECUTIVE_KPIS.map(kpi => (
+                <KPICard key={kpi.id} kpi={kpi} />
               ))}
-            </tbody>
-          </table>
+            </div>
+          </section>
+
+          {/* Company Growth Overview */}
+          <section className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="xl:col-span-2 bg-white p-6 sm:p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-500"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight font-crimson">Company Growth Trends</h3>
+                  <p className="text-sm text-slate-500 font-medium">Revenue and student acquisition over the last 6 months.</p>
+                </div>
+                <div className="flex bg-slate-100 p-1 rounded-xl">
+                  <button className="px-4 py-1.5 bg-white text-indigo-600 text-[10px] font-black rounded-lg shadow-sm uppercase tracking-widest">Students</button>
+                </div>
+              </div>
+              <div className="h-[300px] sm:h-[400px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={GROWTH_DATA}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.01}/>
+                      </linearGradient>
+                      <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.01}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 600}} 
+                      dy={10} 
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 600}} 
+                    />
+                    <Tooltip 
+                      cursor={{ stroke: '#e2e8f0', strokeWidth: 2 }}
+                      contentStyle={{ 
+                        borderRadius: '20px', 
+                        border: '1px solid #f1f5f9', 
+                        boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+                        padding: '12px 16px'
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="students" 
+                      stroke="#10b981" 
+                      strokeWidth={4} 
+                      fillOpacity={1} 
+                      fill="url(#colorStudents)" 
+                      animationDuration={2500}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-white p-6 sm:p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-500"
+            >
+              <h3 className="text-xl font-black text-slate-900 tracking-tight font-crimson mb-1">Retention & Churn</h3>
+              <p className="text-sm text-slate-500 font-medium mb-8">User lifecycle health metrics.</p>
+              
+              <div className="h-[250px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={GROWTH_DATA}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Bar dataKey="retention" fill="#e0e7ff" radius={[6, 6, 0, 0]} barSize={30} />
+                    <Line type="monotone" dataKey="churn" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, fill: '#ef4444', strokeWidth: 2, stroke: '#fff' }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+              
+              <div className="mt-8 space-y-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Net Revenue Retention</span>
+                    <span className="text-sm font-black text-emerald-600">118%</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: '100%' }}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                      className="h-full bg-emerald-500" 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Logo Churn</span>
+                    <span className="text-sm font-black text-rose-600">0.4%</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: '4%' }}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                      className="h-full bg-rose-500" 
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </section>
+
+          {/* Institution Performance Overview */}
+          <section>
+            <SectionHeader 
+              title="Institution Performance Matrix" 
+              subtitle="Ranked performance of top education providers."
+              action={
+                <div className="flex gap-2">
+                  <div className="relative hidden sm:block">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                    <input type="text" placeholder="Filter partners..." className="pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none w-48" />
+                  </div>
+                </div>
+              }
+            />
+            <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto no-scrollbar">
+                <table className="w-full text-left min-w-[1000px]">
+                <thead>
+                  <tr className="bg-slate-50/50 border-b border-slate-200">
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Institution</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Students / Active</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Credits Rem.</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hours Saved</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Engagement</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {INSTITUTION_PERFORMANCE.map((inst, i) => (
+                    <tr key={i} className="hover:bg-slate-50/50 transition-colors group cursor-pointer">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold">
+                            {inst.name[0]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900">{inst.name}</p>
+                            <p className="text-[10px] text-slate-400">Last active {inst.lastActive}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-700">{inst.students}</span>
+                          <span className="text-[10px] text-slate-400">{inst.active} active</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1.5">
+                          <Zap size={12} className={parseInt(inst.credits) < 50 ? 'text-rose-500' : 'text-amber-500'} />
+                          <span className={`text-sm font-bold ${parseInt(inst.credits) < 50 ? 'text-rose-600' : 'text-slate-700'}`}>
+                            {inst.credits}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Clock size={12} className="text-teal-500" />
+                          <span className="text-sm font-bold text-slate-900">{inst.hoursSaved}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-indigo-500" style={{ width: `${inst.engagement * 10}%` }} />
+                          </div>
+                          <span className="text-xs font-bold text-slate-900">{inst.engagement}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+          {/* Student Risk & Product Usage Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Student Risk */}
+            <section>
+              <div className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 shadow-sm h-full">
+                <SectionHeader 
+                  title="Student Risk Intelligence" 
+                  subtitle="Predictive analysis of learner success and intervention needs." 
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8">
+                  <div className="p-4 sm:p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total At-Risk</p>
+                    <h4 className="text-2xl sm:text-3xl font-black text-slate-900">12,492</h4>
+                    <p className="text-xs text-rose-600 font-bold mt-1">+420 this week</p>
+                  </div>
+                  <div className="p-4 sm:p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
+                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Intervention Success</p>
+                    <h4 className="text-2xl sm:text-3xl font-black text-indigo-900">84.2%</h4>
+                    <p className="text-xs text-indigo-600 font-bold mt-1">+2.1% efficiency</p>
+                  </div>
+                </div>
+                
+                <div className="h-[200px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={RISK_CATEGORIES}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {RISK_CATEGORIES.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Activity size={14} className="text-indigo-500" />
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Risk Distribution</h4>
+                  </div>
+                  <div className="space-y-3">
+                    {RISK_CATEGORIES.map((cat, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                          <span className="text-xs font-medium text-slate-600">{cat.name}</span>
+                        </div>
+                        <span className="text-xs font-bold text-slate-900">{cat.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Product Usage */}
+            <section>
+              <div className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 shadow-sm h-full">
+                <SectionHeader title="Product & AI Analytics" subtitle="System interaction volume." />
+                <div className="space-y-4">
+                  {AI_ANALYTICS.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.name}</p>
+                        <p className="text-lg font-bold text-slate-900">{item.value}</p>
+                      </div>
+                      <div className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                        <TrendingUp size={12} /> {item.trend}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 p-4 bg-indigo-900 rounded-2xl text-white">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Cpu size={16} className="text-indigo-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">System Health</span>
+                  </div>
+                  <p className="text-xs text-indigo-100/60">Avg Latency: <span className="text-white font-bold">420ms</span></p>
+                  <p className="text-xs text-indigo-100/60">Curriculum Coverage: <span className="text-white font-bold">92.4%</span></p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Deep-dive Analytics Preview */}
+          <section>
+            <SectionHeader title="Deep-dive Analytics" subtitle="Drill into specific operational domains." />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[
+              { id: 'institutions', label: 'Institution Details', icon: Building2 },
+              { id: 'institutions', label: 'Branch Breakdown', icon: Layers },
+              { id: 'roi', label: 'Student Risk Model', icon: SearchCheck },
+              { id: 'health', label: 'Product Analytics', icon: Monitor },
+              { id: 'audit', label: 'Admin Activity', icon: History },
+            ].map((item, i) => (
+              <button 
+                key={i} 
+                onClick={() => onNavigate?.(item.id)}
+                className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-slate-200 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group"
+              >
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
+                    <item.icon size={20} />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider text-center">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Partner Credit Management */}
+          <section>
+            <SectionHeader 
+              title="Partner Credit Management" 
+              subtitle="Monitor and manage AI credit distribution across partner institutions."
+              action={
+                <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                  <Plus size={14} /> Bulk Top-up
+                </button>
+              }
+            />
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto no-scrollbar">
+                <table className="w-full text-left min-w-[1000px]">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-200">
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Partner Institution</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Credits</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Used</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Remaining</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usage</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Last Top-up</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                      <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {PARTNER_CREDITS_MANAGEMENT.map((partner, i) => {
+                      const usedNum = parseFloat(partner.used);
+                      const totalNum = parseFloat(partner.total);
+                      const usagePct = (usedNum / totalNum) * 100;
+                      
+                      return (
+                        <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
+                          <td className="px-6 py-4">
+                            <p className="text-sm font-bold text-slate-900">{partner.name}</p>
+                            <p className="text-[10px] text-slate-400">{partner.plan} Plan</p>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium text-slate-600">{partner.total}</td>
+                          <td className="px-6 py-4 text-sm font-medium text-slate-600">{partner.used}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-1.5">
+                              <Zap size={12} className={partner.status === 'Critical' ? 'text-rose-500' : 'text-amber-500'} />
+                              <span className={`text-sm font-bold ${partner.status === 'Critical' ? 'text-rose-600' : 'text-slate-700'}`}>
+                                {partner.remaining}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full ${usagePct > 80 ? 'bg-rose-500' : usagePct > 50 ? 'bg-amber-500' : 'bg-emerald-500'}`} 
+                                  style={{ width: `${usagePct}%` }} 
+                                />
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-400">{Math.round(usagePct)}%</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-xs text-slate-500">
+                            <div className="flex flex-col">
+                              <span>{partner.lastTopUp}</span>
+                              <span className="text-[10px] text-slate-400">Renews: {partner.nextRenewal}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                              partner.status === 'Healthy' ? 'bg-emerald-50 text-emerald-600' :
+                              partner.status === 'Warning' ? 'bg-amber-50 text-amber-600' :
+                              'bg-rose-50 text-rose-600'
+                            }`}>
+                              {partner.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <button 
+                              onClick={() => setSelectedPartnerForCredits(partner)}
+                              className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-lg hover:bg-indigo-100 transition-all flex items-center gap-1"
+                            >
+                              <Settings size={12} />
+                              Manage
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <footer className="pt-10 pb-20 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full shadow-sm">
+              <Sparkles size={14} className="text-indigo-600" />
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intelligence you can learn from.</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-4 uppercase tracking-[0.2em]">© 2026 Enara Intelligence Layer</p>
+          </footer>
+
         </div>
       </div>
 
-      {/* Quick Actions Panel */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { label: 'Add New Partner', icon: Building2, color: 'bg-blue-50 text-blue-600', action: () => setIsAddProviderOpen(true) },
-          { label: 'Create Programme', icon: Layers, color: 'bg-indigo-50 text-indigo-600' },
-          { label: 'Export Analytics', icon: FileText, color: 'bg-emerald-50 text-emerald-600' },
-          { label: 'Manage Integrations', icon: Zap, color: 'bg-amber-50 text-amber-600' },
-        ].map((action, idx) => (
-          <button 
-            key={idx}
-            onClick={action.action}
-            className="flex items-center gap-4 p-5 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all text-left group"
-          >
-            <div className={`w-12 h-12 rounded-2xl ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-              <action.icon size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-900">{action.label}</p>
-              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Quick Access</p>
-            </div>
-            <ChevronRight size={16} className="ml-auto text-slate-300 group-hover:text-slate-600 transition-colors" />
-          </button>
-        ))}
-      </div>
-
-      {/* Add Provider Modal */}
+      {/* Right-side Alerts & Action Center removed as requested */}
+      {/* AI Credit Management Modal */}
       <AnimatePresence>
-        {isAddProviderOpen && (
+        {selectedPartnerForCredits && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsAddProviderOpen(false)}
+              onClick={() => setSelectedPartnerForCredits(null)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200"
             >
-              <div className="p-8 sm:p-10">
-                <div className="flex justify-between items-start mb-8">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Onboard New Partner</h2>
-                    <p className="text-slate-500 mt-1">Create a new education provider and generate admin credentials.</p>
+              {/* Modal Header */}
+              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
+                    <Zap size={24} />
                   </div>
-                  <button 
-                    onClick={() => setIsAddProviderOpen(false)}
-                    className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    <RefreshCw size={24} className="rotate-45" />
-                  </button>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 font-crimson">AI Credit Management</h3>
+                    <p className="text-sm text-slate-500 font-medium">{selectedPartnerForCredits.name} • {selectedPartnerForCredits.plan} Plan</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedPartnerForCredits(null)}
+                  className="p-2 hover:bg-slate-200 rounded-xl transition-colors text-slate-400"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-8 space-y-8">
+                {/* Current Status Grid */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Allocated</p>
+                    <p className="text-xl font-black text-slate-900">{selectedPartnerForCredits.total}</p>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Used Credits</p>
+                    <p className="text-xl font-black text-slate-900">{selectedPartnerForCredits.used}</p>
+                  </div>
+                  <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Remaining</p>
+                    <p className="text-xl font-black text-indigo-600">{selectedPartnerForCredits.remaining}</p>
+                  </div>
                 </div>
 
-                <form onSubmit={handleAddProvider} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Organization Name</label>
-                      <div className="relative">
-                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input 
-                          required
-                          type="text"
-                          value={providerData.orgName}
-                          onChange={(e) => setProviderData({...providerData, orgName: e.target.value})}
-                          placeholder="e.g. Global Tech Academy"
-                          className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
-                        />
-                      </div>
+                {/* Usage Visualization */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-end">
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Consumption Rate</h4>
+                    <span className="text-xs font-bold text-slate-600">Next Renewal: {selectedPartnerForCredits.nextRenewal}</span>
+                  </div>
+                  <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                    <div className="h-full bg-indigo-500" style={{ width: '30%' }} />
+                    <div className="h-full bg-indigo-300" style={{ width: '15%' }} />
+                    <div className="h-full bg-slate-200" style={{ width: '55%' }} />
+                  </div>
+                  <div className="flex gap-4 text-[10px] font-bold text-slate-400">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                      <span>AI Tutoring (65%)</span>
                     </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Organization Type</label>
-                      <select 
-                        value={providerData.orgType}
-                        onChange={(e) => setProviderData({...providerData, orgType: e.target.value})}
-                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
-                      >
-                        <option>School</option>
-                        <option>University</option>
-                        <option>Corporate</option>
-                        <option>Others</option>
-                      </select>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-indigo-300" />
+                      <span>Content Gen (35%)</span>
                     </div>
                   </div>
+                </div>
 
-                  {providerData.orgType === 'Others' && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="space-y-2"
-                    >
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Specify Type</label>
+                {/* Management Actions */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                  <div className="space-y-3">
+                    <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+                      <CreditCard size={18} />
+                      Top Up
+                    </button>
+                    <div className="relative">
                       <input 
-                        type="text"
-                        value={providerData.otherType}
-                        onChange={(e) => setProviderData({...providerData, otherType: e.target.value})}
-                        placeholder="e.g. Training Center"
-                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
+                        type="number" 
+                        value={topUpAmount}
+                        onChange={(e) => setTopUpAmount(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-indigo-500 transition-all"
+                        placeholder="Amount"
                       />
-                    </motion.div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Admin Full Name</label>
-                      <div className="relative">
-                        <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input 
-                          required
-                          type="text"
-                          value={providerData.adminName}
-                          onChange={(e) => setProviderData({...providerData, adminName: e.target.value})}
-                          placeholder="John Doe"
-                          className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Admin Email</label>
-                      <div className="relative">
-                        <Zap className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input 
-                          required
-                          type="email"
-                          value={providerData.adminEmail}
-                          onChange={(e) => setProviderData({...providerData, adminEmail: e.target.value})}
-                          placeholder="admin@org.com"
-                          className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
-                        />
-                      </div>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">Credits</span>
                     </div>
                   </div>
 
-                  {!showCredentials ? (
-                    <button 
-                      type="button"
-                      onClick={generateCredentials}
-                      disabled={!providerData.orgName || !providerData.adminEmail}
-                      className="w-full py-4 bg-slate-100 text-slate-900 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Zap size={18} className="text-amber-500" />
-                      Generate Login Credentials
-                    </button>
-                  ) : (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-6 bg-slate-900 rounded-3xl space-y-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Admin Credentials</span>
-                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-                          <CheckCircle2 size={10} /> Securely Generated
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">Username</p>
-                          <div className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2 border border-white/10">
-                            <code className="text-xs text-white truncate mr-2">{providerData.username}</code>
-                            <button 
-                              type="button"
-                              onClick={() => copyToClipboard(providerData.username, 'user')}
-                              className="text-slate-400 hover:text-white transition-colors"
-                            >
-                              {copiedField === 'user' ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">Password</p>
-                          <div className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2 border border-white/10">
-                            <code className="text-xs text-white truncate mr-2">{providerData.password}</code>
-                            <button 
-                              type="button"
-                              onClick={() => copyToClipboard(providerData.password, 'pass')}
-                              className="text-slate-400 hover:text-white transition-colors"
-                            >
-                              {copiedField === 'pass' ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
+                  <button className="h-[52px] py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                    <RotateCcw size={18} className="text-emerald-500" />
+                    Renew Plan
+                  </button>
 
-                  <div className="pt-4 flex gap-4">
-                    <button 
-                      type="button"
-                      onClick={() => setIsAddProviderOpen(false)}
-                      className="flex-1 py-4 text-slate-500 font-bold hover:text-slate-700 transition-all"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit"
-                      disabled={!showCredentials}
-                      className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
-                    >
-                      Confirm & Onboard Partner
-                    </button>
-                  </div>
-                </form>
+                  <button className="h-[52px] py-4 bg-white border border-rose-200 text-rose-600 rounded-2xl font-black text-sm hover:bg-rose-50 transition-all flex items-center justify-center gap-2">
+                    <Ban size={18} />
+                    Stop / Cancel
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  * Changes are applied instantly to the partner's API access.
+                </p>
               </div>
             </motion.div>
           </div>

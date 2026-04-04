@@ -23,11 +23,11 @@ import {
   ChevronUp,
   ChevronLeft
 } from 'lucide-react';
-import { Curriculum, Batch, Chapter } from '../types';
-import { MOCK_CURRICULUMS, MOCK_BATCHES } from '../constants';
+import { Curriculum, Batch, Chapter, CourseInstance, Student } from '../types';
+import { MOCK_CURRICULUMS, MOCK_BATCHES, MOCK_INSTITUTIONS, MOCK_COURSE_INSTANCES, MOCK_STUDENTS } from '../constants';
 
-export const CurriculumCenter: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'curriculums' | 'batches'>('curriculums');
+export const CurriculumCenter: React.FC<{ isEnaraAdmin?: boolean }> = ({ isEnaraAdmin }) => {
+  const [activeTab, setActiveTab] = useState<'curriculums' | 'batches' | 'instances'>('curriculums');
   const [curriculums, setCurriculums] = useState<Curriculum[]>(() => {
     const saved = localStorage.getItem('enara_curriculums');
     if (saved) {
@@ -44,23 +44,45 @@ export const CurriculumCenter: React.FC = () => {
     localStorage.setItem('enara_curriculums', JSON.stringify(curriculums));
   }, [curriculums]);
   const [batches, setBatches] = useState<Batch[]>(MOCK_BATCHES);
+  const [courseInstances, setCourseInstances] = useState<CourseInstance[]>(MOCK_COURSE_INSTANCES);
+  const [students] = useState<Student[]>(MOCK_STUDENTS);
   
   // Search & Filter States
   const [curriculumSearch, setCurriculumSearch] = useState('');
+  const [curriculumTypeFilter, setCurriculumTypeFilter] = useState('All Types');
+  const [curriculumStatusFilter, setCurriculumStatusFilter] = useState('All Status');
+  const [partnerFilter, setPartnerFilter] = useState('All Partners');
   const [batchSearch, setBatchSearch] = useState('');
   const [batchFilter, setBatchFilter] = useState<'all' | 'assigned' | 'unassigned'>('all');
+  
+  const [instanceSearch, setInstanceSearch] = useState('');
+  const [instanceYearFilter, setInstanceYearFilter] = useState('All Years');
+  const [instanceBatchFilter, setInstanceBatchFilter] = useState('All Batches');
 
   // Modal States
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const [showInstanceModal, setShowInstanceModal] = useState(false);
+  const [showAssignStudentModal, setShowAssignStudentModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [selectedLink, setSelectedLink] = useState('');
   const [selectedCurriculum, setSelectedCurriculum] = useState<Curriculum | null>(null);
+  const [selectedInstance, setSelectedInstance] = useState<CourseInstance | null>(null);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
 
   // Form States for Batch
-  const [batchForm, setBatchForm] = useState({ name: '', studentCount: 0 });
+  const [batchForm, setBatchForm] = useState({ name: '', studentCount: 0, academicYear: '2023-2024', groupId: '' });
+
+  // Form States for Instance
+  const [instanceForm, setInstanceForm] = useState({
+    courseId: '',
+    courseName: '',
+    academicYear: '2023-2024',
+    batchId: '',
+    curriculumId: '',
+    groupId: ''
+  });
 
   // Form States for Curriculum
   const [curriculumForm, setCurriculumForm] = useState({
@@ -76,11 +98,18 @@ export const CurriculumCenter: React.FC = () => {
   const [expandedChapters, setExpandedChapters] = useState<string[]>([]);
 
   const filteredCurriculums = useMemo(() => {
-    return curriculums.filter(c => 
-      c.name.toLowerCase().includes(curriculumSearch.toLowerCase()) ||
-      c.type.toLowerCase().includes(curriculumSearch.toLowerCase())
-    );
-  }, [curriculums, curriculumSearch]);
+    return curriculums.filter(c => {
+      const searchLower = curriculumSearch.toLowerCase();
+      const matchesSearch = c.name.toLowerCase().includes(searchLower) ||
+                           c.id.toLowerCase().includes(searchLower) ||
+                           c.courseName.toLowerCase().includes(searchLower) ||
+                           c.type.toLowerCase().includes(searchLower);
+      const matchesType = curriculumTypeFilter === 'All Types' || c.type === curriculumTypeFilter;
+      const matchesStatus = curriculumStatusFilter === 'All Status' || c.status === curriculumStatusFilter.toLowerCase();
+      
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [curriculums, curriculumSearch, curriculumTypeFilter, curriculumStatusFilter]);
 
   const filteredBatches = useMemo(() => {
     return batches.filter(b => {
@@ -92,6 +121,17 @@ export const CurriculumCenter: React.FC = () => {
       return matchesSearch && matchesFilter;
     });
   }, [batches, batchSearch, batchFilter]);
+
+  const filteredInstances = useMemo(() => {
+    return courseInstances.filter(inst => {
+      const matchesSearch = inst.courseName.toLowerCase().includes(instanceSearch.toLowerCase()) ||
+                           inst.courseId.toLowerCase().includes(instanceSearch.toLowerCase());
+      const matchesYear = instanceYearFilter === 'All Years' || inst.academicYear === instanceYearFilter;
+      const matchesBatch = instanceBatchFilter === 'All Batches' || inst.batchId === instanceBatchFilter;
+      
+      return matchesSearch && matchesYear && matchesBatch;
+    });
+  }, [courseInstances, instanceSearch, instanceYearFilter, instanceBatchFilter]);
 
   const handleAssign = (batchId: string) => {
     if (!selectedCurriculum) return;
@@ -113,7 +153,7 @@ export const CurriculumCenter: React.FC = () => {
   };
 
   const handleCreateCurriculum = (status: 'draft' | 'deployed') => {
-    const id = `c${Date.now()}`;
+    const id = `CUR-${Math.random().toString(36).substr(2, 6).toUpperCase()}-${Date.now().toString().slice(-4)}`;
     const newCurriculum: Curriculum = {
       id,
       name: curriculumForm.name,
@@ -256,12 +296,50 @@ export const CurriculumCenter: React.FC = () => {
         id: `b${Date.now()}`,
         name: batchForm.name,
         studentCount: batchForm.studentCount,
+        academicYear: batchForm.academicYear,
+        groupId: batchForm.groupId
       };
       setBatches(prev => [...prev, newBatch]);
     }
     setShowBatchModal(false);
     setEditingBatch(null);
-    setBatchForm({ name: '', studentCount: 0 });
+    setBatchForm({ name: '', studentCount: 0, academicYear: '2023-2024', groupId: '' });
+  };
+
+  const handleSaveInstance = () => {
+    const newInstance: CourseInstance = {
+      id: `inst-${Date.now()}`,
+      ...instanceForm,
+      studentIds: []
+    };
+    setCourseInstances(prev => [newInstance, ...prev]);
+    setShowInstanceModal(false);
+    setInstanceForm({
+      courseId: '',
+      courseName: '',
+      academicYear: '2023-2024',
+      batchId: '',
+      curriculumId: '',
+      groupId: ''
+    });
+  };
+
+  const handleAssignStudent = (studentId: string) => {
+    if (!selectedInstance) return;
+    setCourseInstances(prev => prev.map(inst => 
+      inst.id === selectedInstance.id 
+        ? { ...inst, studentIds: [...new Set([...inst.studentIds, studentId])] } 
+        : inst
+    ));
+    setShowAssignStudentModal(false);
+  };
+
+  const removeStudentFromInstance = (instanceId: string, studentId: string) => {
+    setCourseInstances(prev => prev.map(inst => 
+      inst.id === instanceId 
+        ? { ...inst, studentIds: inst.studentIds.filter(id => id !== studentId) } 
+        : inst
+    ));
   };
 
   const handleDeleteBatch = (id: string) => {
@@ -334,13 +412,21 @@ export const CurriculumCenter: React.FC = () => {
               <Plus size={20} />
               Upload Curriculum
             </button>
-          ) : (
+          ) : activeTab === 'batches' ? (
             <button 
               onClick={() => openBatchModal()}
               className="flex-1 sm:flex-none teal-gradient text-white px-4 sm:px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg shadow-teal-900/10 hover:scale-[1.02] transition-all active:scale-[0.98] text-sm sm:text-base"
             >
               <Plus size={20} />
               New Batch
+            </button>
+          ) : (
+            <button 
+              onClick={() => setShowInstanceModal(true)}
+              className="flex-1 sm:flex-none teal-gradient text-white px-4 sm:px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg shadow-teal-900/10 hover:scale-[1.02] transition-all active:scale-[0.98] text-sm sm:text-base"
+            >
+              <Plus size={20} />
+              New Instance
             </button>
           )}
         </div>
@@ -366,151 +452,152 @@ export const CurriculumCenter: React.FC = () => {
           Batches
           {activeTab === 'batches' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-teal-600 rounded-full" />}
         </button>
+        <button 
+          onClick={() => setActiveTab('instances')}
+          className={`pb-4 text-sm font-bold transition-all relative whitespace-nowrap ${
+            activeTab === 'instances' ? 'text-teal-600' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Course Instances
+          {activeTab === 'instances' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-teal-600 rounded-full" />}
+        </button>
       </div>
 
       {activeTab === 'curriculums' ? (
         <>
-          {/* Stats Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-            {[
-              { label: 'Active Curriculums', value: curriculums.length, icon: BookOpen, color: 'text-teal-600', bg: 'bg-teal-50' },
-              { label: 'Assigned Batches', value: batches.filter(b => b.curriculumId).length, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-              { label: 'Unassigned Batches', value: batches.filter(b => !b.curriculumId).length, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-            ].map((stat, i) => (
-              <div key={i} className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center shrink-0`}>
-                  <stat.icon size={20} />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-slate-500 font-medium">{stat.label}</p>
-                  <p className="text-xl sm:text-2xl font-bold text-slate-900">{stat.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Search & Filter */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          {/* Filters */}
+          <div className="flex flex-col lg:flex-row gap-4 mb-8">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input 
                 type="text" 
                 value={curriculumSearch}
                 onChange={(e) => setCurriculumSearch(e.target.value)}
-                placeholder="Search curriculums..." 
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 transition-all"
+                placeholder="Search curriculums by name, ID, or type..." 
+                className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-teal-500/10 transition-all outline-none"
               />
             </div>
-            <button className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-              <Filter size={18} />
-              Filters
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <select 
+                  value={curriculumTypeFilter}
+                  onChange={(e) => setCurriculumTypeFilter(e.target.value)}
+                  className="appearance-none pl-10 pr-10 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all cursor-pointer"
+                >
+                  <option>All Types</option>
+                  <option>National</option>
+                  <option>IGCSE</option>
+                  <option>IB</option>
+                  <option>American</option>
+                </select>
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <select 
+                  value={curriculumStatusFilter}
+                  onChange={(e) => setCurriculumStatusFilter(e.target.value)}
+                  className="appearance-none pl-10 pr-10 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-teal-500/10 transition-all cursor-pointer"
+                >
+                  <option>All Status</option>
+                  <option>Draft</option>
+                  <option>Deployed</option>
+                </select>
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
           </div>
 
-          {/* Curriculum List */}
-          <div className="grid grid-cols-1 gap-4">
-            {filteredCurriculums.map((curriculum) => (
-              <div key={curriculum.id} className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 hover:border-teal-200 transition-all group shadow-sm">
-                <div className="flex flex-col lg:flex-row justify-between gap-6">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-teal-50 group-hover:text-teal-600 transition-colors shrink-0">
-                      <FileText size={24} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
-                        <h3 className="text-base sm:text-lg font-bold text-slate-900 truncate">{curriculum.name}</h3>
-                        <div className="flex gap-2">
-                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
-                            {curriculum.type}
-                          </span>
-                          <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md ${
-                            curriculum.status === 'deployed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                          }`}>
-                            {curriculum.status}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-xs sm:text-sm text-slate-500 mb-2 font-medium">Course: {curriculum.courseName} • Level: {curriculum.level}</p>
-                      {curriculum.status === 'deployed' && (
-                        <div className="flex items-center gap-2 mb-3 bg-slate-50 w-fit px-2 py-1 rounded border border-slate-100">
-                          <LinkIcon size={12} className="text-slate-400" />
-                          <code className="text-[10px] text-slate-500 font-mono">ID: {curriculum.id}</code>
-                        </div>
-                      )}
-                      <p className="text-xs sm:text-sm text-slate-500 mb-3 max-w-2xl line-clamp-2">{curriculum.summary}</p>
-                      <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] sm:text-xs text-slate-400 font-medium">
-                        <span className="flex items-center gap-1.5">
-                          <BookOpen size={14} /> {curriculum.chapters.length} Chapters
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <Globe size={14} /> {curriculum.languages.join(', ')}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <Clock size={14} /> Updated {curriculum.lastUpdated}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <Users size={14} /> {curriculum.assignedBatches.length} Batches
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-row lg:flex-col justify-start sm:justify-end lg:justify-start gap-2">
-                    {curriculum.status === 'deployed' ? (
-                      <button 
-                        onClick={() => {
-                          setSelectedLink(`${window.location.origin}/?course=${curriculum.id}`);
-                          setShowLinkModal(true);
-                        }}
-                        className="flex-1 lg:flex-none px-3 sm:px-4 py-2 bg-teal-600 text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-teal-700 transition-all flex items-center justify-center gap-2 shadow-md shadow-teal-900/10"
-                        title="View Shareable Link"
-                      >
-                        <Globe size={16} />
-                        <span className="sm:inline">Share Link</span>
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => handleDeploy(curriculum.id)}
-                        className="flex-1 lg:flex-none px-3 sm:px-4 py-2 bg-amber-500 text-white text-xs sm:text-sm font-semibold rounded-lg hover:bg-amber-600 transition-all flex items-center justify-center gap-2 shadow-md shadow-amber-900/10"
-                        title="Deploy Curriculum"
-                      >
-                        <Globe size={16} />
-                        <span className="sm:inline">Deploy Now</span>
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => {
-                        setSelectedCurriculum(curriculum);
-                        setShowAssignModal(true);
-                      }}
-                      className="flex-1 lg:flex-none px-3 sm:px-4 py-2 bg-slate-100 text-slate-700 text-xs sm:text-sm font-semibold rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <LinkIcon size={16} />
-                      <span className="sm:inline">Assign</span>
-                    </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCurriculums.map((curr) => (
+              <div key={curr.id} className="bg-white border border-slate-200 rounded-[2rem] p-8 hover:border-teal-200 transition-all shadow-sm hover:shadow-xl hover:shadow-teal-900/5 group relative overflow-hidden flex flex-col">
+                {/* Status Badge */}
+                <div className="absolute top-0 right-0">
+                  <div className={`px-6 py-2 rounded-bl-2xl text-[10px] font-black uppercase tracking-[0.2em] ${
+                    curr.status === 'deployed' ? 'bg-emerald-500 text-white' : 'bg-amber-400 text-white'
+                  }`}>
+                    {curr.status}
                   </div>
                 </div>
-                
-                {curriculum.assignedBatches.length > 0 && (
-                  <div className="mt-6 pt-6 border-t border-slate-50 flex flex-wrap gap-2">
-                    {curriculum.assignedBatches.map((batch, idx) => (
-                      <div key={idx} className="flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-100 group/batch">
+
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="px-2 py-1 bg-slate-100 text-slate-500 text-[10px] font-mono font-bold rounded uppercase tracking-wider">
+                      {curr.id}
+                    </span>
+                    <span className="px-2 py-1 bg-teal-50 text-teal-600 text-[10px] font-bold rounded uppercase tracking-wider">
+                      {curr.type}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">{curr.name}</h3>
+                  <p className="text-sm text-slate-500 line-clamp-2">{curr.summary}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  <div className="p-3 bg-slate-50 rounded-2xl">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Subjects</p>
+                    <p className="text-lg font-bold text-slate-900">{curr.subjectsCount}</p>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-2xl">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Batches</p>
+                    <p className="text-lg font-bold text-slate-900">{curr.assignedBatches.length}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-8">
+                  {curr.assignedBatches.length > 0 ? (
+                    curr.assignedBatches.slice(0, 2).map((batch, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 px-3 py-1 bg-teal-50 text-teal-700 text-[10px] font-bold rounded-full border border-teal-100">
                         {batch}
-                        <button 
-                          onClick={() => unassignBatch(curriculum.id, batch)}
-                          className="hover:text-red-600 transition-colors"
-                        >
-                          <X size={12} />
+                        <button onClick={() => unassignBatch(curr.id, batch)} className="hover:text-red-600">
+                          <X size={10} />
                         </button>
                       </div>
-                    ))}
+                    ))
+                  ) : (
+                    <span className="text-[10px] text-slate-400 font-bold italic">No batches assigned</span>
+                  )}
+                  {curr.assignedBatches.length > 2 && (
+                    <span className="text-[10px] text-slate-400 font-bold">+{curr.assignedBatches.length - 2} more</span>
+                  )}
+                </div>
+
+                <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between gap-3">
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        setSelectedCurriculum(curr);
+                        setShowAssignModal(true);
+                      }}
+                      className="p-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10"
+                      title="Assign to Batch"
+                    >
+                      <LinkIcon size={18} />
+                    </button>
+                    {curr.status === 'deployed' && (
+                      <button 
+                        onClick={() => {
+                          setSelectedLink(curr.deploymentLink || '');
+                          setShowLinkModal(true);
+                        }}
+                        className="p-3 bg-teal-50 text-teal-600 rounded-xl hover:bg-teal-100 transition-all border border-teal-100"
+                        title="View Deployment Link"
+                      >
+                        <Globe size={18} />
+                      </button>
+                    )}
                   </div>
-                )}
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Last Updated</p>
+                    <p className="text-xs font-bold text-slate-600">{curr.lastUpdated}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </>
-      ) : (
+      ) : activeTab === 'batches' ? (
         <>
           {/* Batch View */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -541,11 +628,12 @@ export const CurriculumCenter: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm overflow-x-auto no-scrollbar">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto no-scrollbar">
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Batch Name</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Year / Group</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Students</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Assigned Curriculum</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
@@ -565,6 +653,12 @@ export const CurriculumCenter: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-slate-700">{batch.academicYear}</span>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold">{batch.groupId || 'No Group'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
                         <span className="text-sm text-slate-600 flex items-center gap-1.5">
                           <Users size={14} className="text-slate-400" />
                           {batch.studentCount} Students
@@ -576,16 +670,6 @@ export const CurriculumCenter: React.FC = () => {
                             <span className="px-3 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full border border-teal-100">
                               {assignedCurriculum.name}
                             </span>
-                            <button 
-                              onClick={() => {
-                                setSelectedLink(`${window.location.origin}/?course=${assignedCurriculum.id}`);
-                                setShowLinkModal(true);
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-teal-600 transition-colors"
-                              title="Share Course Link"
-                            >
-                              <Globe size={14} />
-                            </button>
                           </div>
                         ) : (
                           <span className="text-xs text-slate-400 italic">No curriculum assigned</span>
@@ -610,15 +694,116 @@ export const CurriculumCenter: React.FC = () => {
                     </tr>
                   );
                 })}
-                {filteredBatches.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">
-                      No batches found matching your criteria.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Course Instances View */}
+          <div className="flex flex-col lg:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text" 
+                value={instanceSearch}
+                onChange={(e) => setInstanceSearch(e.target.value)}
+                placeholder="Search instances by course name or ID..." 
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 transition-all"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select 
+                value={instanceYearFilter}
+                onChange={(e) => setInstanceYearFilter(e.target.value)}
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
+              >
+                <option>All Years</option>
+                <option>2023-2024</option>
+                <option>2024-2025</option>
+              </select>
+              <select 
+                value={instanceBatchFilter}
+                onChange={(e) => setInstanceBatchFilter(e.target.value)}
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
+              >
+                <option value="All Batches">All Batches</option>
+                {batches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredInstances.map((inst) => {
+              const batch = batches.find(b => b.id === inst.batchId);
+              const curriculum = curriculums.find(c => c.id === inst.curriculumId);
+              return (
+                <div key={inst.id} className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-teal-200 transition-all shadow-sm flex flex-col">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">{inst.courseName}</h3>
+                      <p className="text-xs text-slate-400 font-mono uppercase">{inst.courseId}</p>
+                    </div>
+                    <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-md">
+                      {inst.academicYear}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3 mb-6 flex-1">
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Layers size={16} className="text-slate-400" />
+                      <span>Batch: <span className="font-semibold">{batch?.name || 'Unknown'}</span></span>
+                    </div>
+                    {curriculum && (
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <BookOpen size={16} className="text-slate-400" />
+                        <span>Curriculum: <span className="font-semibold text-teal-600">{curriculum.name}</span> <span className="text-[10px] text-slate-400 font-mono ml-1">({curriculum.id})</span></span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Users size={16} className="text-slate-400" />
+                      <span>Students: <span className="font-semibold">{inst.studentIds.length}</span></span>
+                    </div>
+                    {inst.groupId && (
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Users size={16} className="text-slate-400" />
+                        <span>Group: <span className="font-semibold">{inst.groupId}</span></span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {inst.studentIds.slice(0, 3).map(id => {
+                      const student = students.find(s => s.id === id);
+                      return (
+                        <div key={id} className="flex items-center gap-1.5 px-2 py-1 bg-teal-50 text-teal-700 text-[10px] font-bold rounded-full border border-teal-100">
+                          {student?.name || id}
+                          <button onClick={() => removeStudentFromInstance(inst.id, id)} className="hover:text-red-600">
+                            <X size={10} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {inst.studentIds.length > 3 && (
+                      <span className="text-[10px] text-slate-400 font-bold">+{inst.studentIds.length - 3} more</span>
+                    )}
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      setSelectedInstance(inst);
+                      setShowAssignStudentModal(true);
+                    }}
+                    className="w-full py-2.5 bg-slate-50 text-slate-600 text-sm font-bold rounded-xl hover:bg-teal-50 hover:text-teal-600 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus size={18} />
+                    Assign Students
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -754,6 +939,29 @@ export const CurriculumCenter: React.FC = () => {
                     placeholder="e.g. Batch E - 2024" 
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Academic Year</label>
+                    <select 
+                      value={batchForm.academicYear}
+                      onChange={(e) => setBatchForm(prev => ({ ...prev, academicYear: e.target.value }))}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20"
+                    >
+                      <option>2023-2024</option>
+                      <option>2024-2025</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Group ID</label>
+                    <input 
+                      type="text" 
+                      value={batchForm.groupId}
+                      onChange={(e) => setBatchForm(prev => ({ ...prev, groupId: e.target.value }))}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20" 
+                      placeholder="e.g. Group A" 
+                    />
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Student Count</label>
                   <input 
@@ -806,7 +1014,7 @@ export const CurriculumCenter: React.FC = () => {
               <p className="text-slate-500 mb-8">Define your educational framework and structure.</p>
               
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Curriculum Name</label>
                     <input 
@@ -829,7 +1037,7 @@ export const CurriculumCenter: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Type</label>
                     <select 
@@ -995,7 +1203,7 @@ export const CurriculumCenter: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex gap-4 mt-10">
+              <div className="flex flex-col sm:flex-row gap-4 mt-10">
                 <button 
                   onClick={() => handleCreateCurriculum('draft')}
                   disabled={!curriculumForm.name || !curriculumForm.summary}
@@ -1011,6 +1219,152 @@ export const CurriculumCenter: React.FC = () => {
                   Final Deployment
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Instance Modal (Create) */}
+      {showInstanceModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl animate-slide-in">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-slate-900">New Course Instance</h2>
+                <button onClick={() => setShowInstanceModal(false)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Course ID</label>
+                  <input 
+                    type="text" 
+                    value={instanceForm.courseId}
+                    onChange={(e) => setInstanceForm(prev => ({ ...prev, courseId: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20" 
+                    placeholder="e.g. MATH101" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Course Name</label>
+                  <input 
+                    type="text" 
+                    value={instanceForm.courseName}
+                    onChange={(e) => setInstanceForm(prev => ({ ...prev, courseName: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20" 
+                    placeholder="e.g. Algebra Fundamentals" 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Academic Year</label>
+                    <select 
+                      value={instanceForm.academicYear}
+                      onChange={(e) => setInstanceForm(prev => ({ ...prev, academicYear: e.target.value }))}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20"
+                    >
+                      <option>2023-2024</option>
+                      <option>2024-2025</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Batch</label>
+                    <select 
+                      value={instanceForm.batchId}
+                      onChange={(e) => setInstanceForm(prev => ({ ...prev, batchId: e.target.value }))}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20"
+                    >
+                      <option value="">Select Batch</option>
+                      {batches.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Linked Curriculum (Optional)</label>
+                  <select 
+                    value={instanceForm.curriculumId}
+                    onChange={(e) => setInstanceForm(prev => ({ ...prev, curriculumId: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20"
+                  >
+                    <option value="">Select Curriculum</option>
+                    {curriculums.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Group ID (Optional)</label>
+                  <input 
+                    type="text" 
+                    value={instanceForm.groupId}
+                    onChange={(e) => setInstanceForm(prev => ({ ...prev, groupId: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20" 
+                    placeholder="e.g. Group A" 
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4 mt-10">
+                <button 
+                  onClick={() => setShowInstanceModal(false)}
+                  className="flex-1 px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSaveInstance}
+                  disabled={!instanceForm.courseId || !instanceForm.courseName || !instanceForm.batchId}
+                  className="flex-1 px-6 py-3 teal-gradient text-white rounded-xl font-bold shadow-lg shadow-teal-900/10 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  Create Instance
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Student Modal */}
+      {showAssignStudentModal && selectedInstance && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl animate-slide-in overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Assign Students</h2>
+                <p className="text-sm text-slate-500 mt-1">Instance: {selectedInstance.courseName}</p>
+              </div>
+              <button onClick={() => setShowAssignStudentModal(false)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
+              {students.filter(s => !selectedInstance.studentIds.includes(s.id)).map((student) => (
+                <button
+                  key={student.id}
+                  onClick={() => handleAssignStudent(student.id)}
+                  className="w-full p-4 rounded-2xl border border-slate-200 text-left transition-all flex items-center justify-between group hover:border-teal-500 hover:bg-teal-50/30"
+                >
+                  <div>
+                    <p className="font-bold text-slate-900">{student.name}</p>
+                    <p className="text-xs text-slate-500">{student.id} • {student.grade}</p>
+                  </div>
+                  <Plus className="text-slate-300 group-hover:text-teal-500" size={20} />
+                </button>
+              ))}
+              {students.filter(s => !selectedInstance.studentIds.includes(s.id)).length === 0 && (
+                <p className="text-center text-slate-400 py-8 italic">All students are already assigned to this instance.</p>
+              )}
+            </div>
+            <div className="p-6 bg-slate-50 flex justify-end">
+              <button 
+                onClick={() => setShowAssignStudentModal(false)}
+                className="px-6 py-2 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

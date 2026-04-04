@@ -17,11 +17,23 @@ import {
   DollarSign,
   AlertCircle,
   CheckCircle2,
-  ChevronLeft
+  ChevronLeft,
+  PieChart as PieChartIcon,
+  Plus
 } from 'lucide-react';
+import { 
+  PieChart, 
+  Pie, 
+  Cell, 
+  ResponsiveContainer, 
+  Tooltip as RechartsTooltip 
+} from 'recharts';
+import { ResearchInsights } from './ResearchInsights';
 
 export const ManagementDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'usage' | 'billing'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'usage' | 'billing' | 'research'>('overview');
+  const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
+  const [rechargeAmount, setRechargeAmount] = useState(1000000);
 
   const stats = [
     { label: 'Total Revenue', value: '$42,500', change: '+12.5%', trend: 'up', icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -93,6 +105,13 @@ export const ManagementDashboard: React.FC = () => {
           Billing & Payments
           {activeTab === 'billing' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-600" />}
         </button>
+        <button 
+          onClick={() => setActiveTab('research')}
+          className={`px-4 sm:px-6 py-4 font-bold text-sm transition-all relative whitespace-nowrap ${activeTab === 'research' ? 'text-teal-600' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          Institutional Research
+          {activeTab === 'research' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-600" />}
+        </button>
       </div>
 
       {activeTab === 'overview' && (
@@ -103,7 +122,7 @@ export const ManagementDashboard: React.FC = () => {
               <div key={i} className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-sm">
                 <div className="flex justify-between items-start mb-4">
                   <div className={`p-2.5 sm:p-3 rounded-2xl ${stat.bg} ${stat.color}`}>
-                    <stat.icon size={20} sm:size={24} />
+                    <stat.icon size={20} className="sm:w-6 sm:h-6" />
                   </div>
                   <div className={`flex items-center gap-1 text-[10px] sm:text-xs font-bold ${stat.trend === 'up' ? 'text-emerald-600' : 'text-red-600'}`}>
                     {stat.trend === 'up' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
@@ -301,6 +320,12 @@ export const ManagementDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'research' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <ResearchInsights />
         </div>
       )}
     </div>

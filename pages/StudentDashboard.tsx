@@ -42,13 +42,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ onStartAsses
                   <div className="absolute left-5 sm:left-6 top-10 bottom-0 w-0.5 bg-slate-100"></div>
                 )}
                 <div className={`flex gap-3 sm:gap-4 relative z-10 p-1.5 sm:p-2 rounded-xl transition-all ${mod.status === 'active' ? 'bg-teal-50/50' : ''}`}>
-                  <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:xl flex items-center justify-center shrink-0 shadow-sm ${
+                  <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
                     mod.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
                     mod.status === 'active' ? 'teal-gradient text-white border border-teal-600 shadow-teal-900/10' :
                     'bg-slate-50 text-slate-300 border border-slate-100'
                   }`}>
-                    {mod.status === 'completed' ? <CheckCircle size={16} sm:size={18} /> :
-                     mod.status === 'active' ? <Zap size={16} sm:size={18} /> : <Lock size={16} sm:size={18} />}
+                    {mod.status === 'completed' ? <CheckCircle size={16} className="sm:w-[18px] sm:h-[18px]" /> :
+                     mod.status === 'active' ? <Zap size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Lock size={16} className="sm:w-[18px] sm:h-[18px]" />}
                   </div>
                   <div className="min-w-0">
                     <h4 className={`text-xs sm:text-sm font-bold truncate ${mod.status === 'locked' ? 'text-slate-400' : 'text-slate-900'}`}>{mod.title}</h4>

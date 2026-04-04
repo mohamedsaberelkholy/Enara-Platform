@@ -4,6 +4,7 @@ import {
   GraduationCap, 
   Building2, 
   Cpu, 
+  BookOpen,
   ArrowRight, 
   Eye, 
   EyeOff, 
@@ -64,8 +65,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, isSharedCourse, isSharedA
       title: 'Enara Administrator',
       description: 'Access platform oversight, system controls, and network-wide intelligence.',
       icon: Cpu,
-      color: 'bg-teal-50 text-teal-600',
-      accent: 'teal'
+      color: 'bg-indigo-50 text-indigo-600',
+      accent: 'indigo'
     }
   ];
 

@@ -1,5 +1,172 @@
 
-import { Student, Course, Assessment, Curriculum, Batch } from './types';
+import { Student, Course, Assessment, Curriculum, Batch, UsageEvent, Transaction, OrganizationWallet, CreditLimit, Institution, Contract, AuditLog, CourseInstance, ApiKey } from './types';
+
+export const MOCK_API_KEYS: ApiKey[] = [
+  {
+    id: 'AK-001',
+    key: 'enara_live_khalid_gta_2026',
+    adminId: 'ADM-001',
+    adminEmail: 'khalid@gta.edu',
+    institutionId: 'ORG-001',
+    institutionName: 'Global Tech Academy',
+    lmsSystemId: 'canvas-lms-01',
+    permissions: ['read:students', 'write:assessments', 'read:analytics'],
+    status: 'active',
+    createdAt: '2026-01-15',
+    expiryDate: '2027-01-15'
+  },
+  {
+    id: 'AK-002',
+    key: 'enara_expired_test_key',
+    adminId: 'ADM-001',
+    adminEmail: 'khalid@gta.edu',
+    institutionId: 'ORG-001',
+    institutionName: 'Global Tech Academy',
+    permissions: ['read:all'],
+    status: 'expired',
+    createdAt: '2025-01-01',
+    expiryDate: '2026-01-01'
+  }
+];
+
+export const MOCK_INSTITUTIONS: Institution[] = [
+  {
+    id: 'ORG-001',
+    name: 'Global Tech Academy',
+    studentCount: 42500,
+    activeStudents: 38200,
+    signupDate: '2025-09-12',
+    status: 'Healthy',
+    tier: 'Enterprise',
+    region: 'EMEA',
+    lastActive: '2m ago',
+    mrr: 420000,
+    arr: 5040000,
+    growthRate: 12.4,
+    onboardingDays: 14,
+    supportTickets: 5,
+    avgResolutionTime: '2.4h'
+  },
+  {
+    id: 'ORG-002',
+    name: 'Future Skills Inst.',
+    studentCount: 28400,
+    activeStudents: 24100,
+    signupDate: '2025-10-05',
+    status: 'Warning',
+    tier: 'Custom',
+    region: 'MENA',
+    lastActive: '15m ago',
+    mrr: 285000,
+    arr: 3420000,
+    growthRate: 8.1,
+    onboardingDays: 22,
+    supportTickets: 12,
+    avgResolutionTime: '4.8h'
+  },
+  {
+    id: 'ORG-003',
+    name: 'Elite Learning Corp',
+    studentCount: 18200,
+    activeStudents: 16800,
+    signupDate: '2025-11-20',
+    status: 'Healthy',
+    tier: 'Enterprise',
+    region: 'APAC',
+    lastActive: '5m ago',
+    mrr: 192000,
+    arr: 2304000,
+    growthRate: 15.2,
+    onboardingDays: 10,
+    supportTickets: 2,
+    avgResolutionTime: '1.2h'
+  },
+  {
+    id: 'ORG-004',
+    name: 'Standard University',
+    studentCount: 32100,
+    activeStudents: 22400,
+    signupDate: '2025-08-15',
+    status: 'At Risk',
+    tier: 'Standard',
+    region: 'Americas',
+    lastActive: '1h ago',
+    mrr: 310000,
+    arr: 3720000,
+    growthRate: -2.4,
+    onboardingDays: 35,
+    supportTickets: 28,
+    avgResolutionTime: '12.5h'
+  }
+];
+
+export const MOCK_CONTRACTS: Contract[] = [
+  {
+    id: 'CON-001',
+    institutionId: 'ORG-001',
+    institutionName: 'Global Tech Academy',
+    startDate: '2025-09-01',
+    expiryDate: '2026-09-01',
+    value: 5040000,
+    creditsAllocated: 1200000,
+    pricePerCredit: 4.2,
+    discount: 10,
+    autoRenewal: true,
+    status: 'Active'
+  },
+  {
+    id: 'CON-002',
+    institutionId: 'ORG-004',
+    institutionName: 'Standard University',
+    startDate: '2025-08-01',
+    expiryDate: '2026-08-01',
+    value: 3720000,
+    creditsAllocated: 200000,
+    pricePerCredit: 18.6,
+    discount: 0,
+    autoRenewal: false,
+    status: 'Pending Renewal'
+  }
+];
+
+export const MOCK_AUDIT_LOGS: AuditLog[] = [
+  {
+    id: 'LOG-001',
+    timestamp: '2026-04-02T12:00:00Z',
+    actorId: 'ADM-001',
+    actorName: 'Director Khalid',
+    actorRole: 'Admin',
+    action: 'Access Grant',
+    category: 'Access',
+    details: 'Granted "Teacher" role to Sarah Ahmed',
+    ipAddress: '192.168.1.42',
+    signature: 'sha256:8f3e...'
+  },
+  {
+    id: 'LOG-002',
+    timestamp: '2026-04-02T11:45:00Z',
+    actorId: 'ADM-002',
+    actorName: 'Enara Executive',
+    actorRole: 'Enara Admin',
+    action: 'Credit Allocation',
+    category: 'Configuration',
+    details: 'Allocated 500,000 credits to Global Tech Academy',
+    ipAddress: '10.0.0.5',
+    signature: 'sha256:a2b1...'
+  },
+  {
+    id: 'LOG-003',
+    timestamp: '2026-04-02T10:30:00Z',
+    actorId: 'SYS',
+    actorName: 'System',
+    actorRole: 'System',
+    action: 'Failed Login Threshold',
+    category: 'Security',
+    details: 'User STU-882 exceeded failed login attempts (5)',
+    ipAddress: '45.12.33.1',
+    signature: 'sha256:c9d8...'
+  }
+];
 
 export const MOCK_STUDENTS: Student[] = [
   {
@@ -14,6 +181,38 @@ export const MOCK_STUDENTS: Student[] = [
     streak: 12,
     status: "excelling",
     currentModule: "Quadratic Equations",
+    batchId: "b1",
+    academicYear: "2023-2024",
+    groupId: "Group A",
+    ttu: 12, // 12 minutes to understand a topic on average
+    adaptiveProfile: {
+      preferredLearningStyle: "Visual",
+      strengths: ["Algebra", "Literature"],
+      weaknesses: ["Kinematics"],
+      topicMastery: {
+        "Quadratic Equations": 95,
+        "Linear Inequalities": 88,
+        "Motion in One Dimension": 72
+      }
+    },
+    riskPrediction: {
+      dropoutRisk: 2,
+      examFailureProbability: 5,
+      factors: ["High engagement", "Consistent scores"],
+      trend: "improving"
+    },
+    nextBestActions: [
+      {
+        id: "act-1",
+        type: "recommendation",
+        title: "Advanced Physics Module",
+        description: "Sarah is excelling in Math; suggest starting the Advanced Physics module early.",
+        priority: "Medium",
+        expectedImpact: 15,
+        confidenceLevel: 92,
+        status: "pending"
+      }
+    ],
     subjects: [
       { name: "Mathematics", progress: 80, score: 92 },
       { name: "Physics", progress: 65, score: 78 },
@@ -65,10 +264,75 @@ export const MOCK_STUDENTS: Student[] = [
     streak: 2,
     status: "at risk",
     currentModule: "Algebra Basics",
+    batchId: "b1",
+    academicYear: "2023-2024",
+    groupId: "Group A",
+    ttu: 45, // 45 minutes to understand a topic
+    adaptiveProfile: {
+      preferredLearningStyle: "Auditory",
+      strengths: ["English"],
+      weaknesses: ["Algebra", "Newton's Laws"],
+      topicMastery: {
+        "Algebra Basics": 45,
+        "Newton's Laws": 30,
+        "Motion in One Dimension": 55
+      }
+    },
+    riskPrediction: {
+      dropoutRisk: 35,
+      examFailureProbability: 48,
+      factors: ["Low engagement frequency", "High TTU trends", "Incomplete assignments"],
+      trend: "declining"
+    },
+    nextBestActions: [
+      {
+        id: "act-2",
+        type: "action",
+        title: "Mandatory Tutoring Session",
+        description: "Schedule a 1-on-1 session focusing on Algebra basics.",
+        priority: "High",
+        expectedImpact: 25,
+        confidenceLevel: 85,
+        status: "pending"
+      },
+      {
+        id: "act-3",
+        type: "plan",
+        title: "Personalized Remedial Plan",
+        description: "Generate a 2-week plan with bite-sized video lessons for Newton's Laws.",
+        priority: "High",
+        expectedImpact: 30,
+        confidenceLevel: 80,
+        status: "pending"
+      }
+    ],
     subjects: [
       { name: "Mathematics", progress: 40, score: 65 },
       { name: "Physics", progress: 30, score: 62 },
       { name: "English", progress: 55, score: 78 }
+    ],
+    pastResults: [
+      {
+        assessmentId: "ASM-OLD-2",
+        assessmentTitle: "Kinematics Quiz",
+        score: 62,
+        date: "2024-03-01",
+        answers: []
+      }
+    ],
+    chatLogs: [
+      {
+        id: "chat-3",
+        role: "user",
+        text: "I don't understand Newton's First Law.",
+        timestamp: new Date("2024-03-05T14:00:00")
+      },
+      {
+        id: "chat-4",
+        role: "ai",
+        text: "Newton's First Law, also known as the Law of Inertia, states that an object at rest stays at rest...",
+        timestamp: new Date("2024-03-05T14:01:00")
+      }
     ]
   }
 ];
@@ -276,10 +540,23 @@ export const MOCK_CURRICULUMS: Curriculum[] = [
 ];
 
 export const MOCK_BATCHES: Batch[] = [
-  { id: 'b1', name: 'Batch A - 2024', studentCount: 45, curriculumId: 'c1' },
-  { id: 'b2', name: 'Batch B - 2024', studentCount: 38, curriculumId: 'c1' },
-  { id: 'b3', name: 'Batch C - 2024', studentCount: 42, curriculumId: 'c2' },
-  { id: 'b4', name: 'Batch D - 2024', studentCount: 35 },
+  { id: 'b1', name: 'Batch A - 2024', studentCount: 45, curriculumId: 'c1', academicYear: '2023-2024', groupId: 'Group A' },
+  { id: 'b2', name: 'Batch B - 2024', studentCount: 38, curriculumId: 'c1', academicYear: '2023-2024', groupId: 'Group B' },
+  { id: 'b3', name: 'Batch C - 2024', studentCount: 42, curriculumId: 'c2', academicYear: '2023-2024', groupId: 'Group C' },
+  { id: 'b4', name: 'Batch D - 2024', studentCount: 35, academicYear: '2023-2024' },
+];
+
+export const MOCK_COURSE_INSTANCES: CourseInstance[] = [
+  {
+    id: 'inst-1',
+    courseId: 'MATH101',
+    courseName: 'Algebra Fundamentals',
+    academicYear: '2023-2024',
+    batchId: 'b1',
+    curriculumId: 'c1',
+    groupId: 'Group A',
+    studentIds: ['STU001', 'STU002']
+  }
 ];
 
 export const MOCK_ANALYTICS = {
@@ -292,3 +569,78 @@ export const MOCK_ANALYTICS = {
     needsHelp: 92
   }
 };
+
+export const MOCK_USAGE_EVENTS: UsageEvent[] = [
+  {
+    id: 'evt-1',
+    userId: 'STU001',
+    userName: 'Sarah Ahmed',
+    organizationId: 'ORG-1',
+    subAccountId: 'b1',
+    feature: 'chat',
+    model: 'gemini-3-flash-preview',
+    requestId: 'req-1',
+    sessionId: 'sess-1',
+    tokensIn: 500,
+    tokensOut: 1200,
+    creditsUsed: 170,
+    timestamp: new Date(Date.now() - 1000 * 60 * 5) // 5 mins ago
+  },
+  {
+    id: 'evt-2',
+    userId: 'STU002',
+    userName: 'Omar Khalid',
+    organizationId: 'ORG-1',
+    subAccountId: 'b1',
+    feature: 'voice',
+    model: 'gemini-2.5-flash-preview-tts',
+    requestId: 'req-2',
+    sessionId: 'sess-2',
+    creditsUsed: 450,
+    timestamp: new Date(Date.now() - 1000 * 60 * 15) // 15 mins ago
+  }
+];
+
+export const MOCK_TRANSACTIONS: Transaction[] = [
+  {
+    id: 'tx-1',
+    walletId: 'w-1',
+    amount: 1000000,
+    type: 'allocation',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7), // 7 days ago
+    description: 'Initial monthly allocation',
+    performedBy: 'Enara'
+  }
+];
+
+export const MOCK_WALLET: OrganizationWallet = {
+  id: 'w-1',
+  orgId: 'ORG-1',
+  balance: 750000,
+  totalAllocated: 1000000,
+  totalConsumed: 250000,
+  lastRechargeDate: '2024-03-25'
+};
+
+export const MOCK_CREDIT_LIMITS: CreditLimit[] = [
+  {
+    id: 'lim-1',
+    targetId: 'STU001',
+    targetType: 'user',
+    limit: 50000,
+    usage: 12500,
+    period: 'monthly',
+    status: 'active',
+    restrictedFeatures: []
+  },
+  {
+    id: 'lim-2',
+    targetId: 'b1',
+    targetType: 'team',
+    limit: 500000,
+    usage: 180000,
+    period: 'monthly',
+    status: 'active',
+    restrictedFeatures: ['voice']
+  }
+];

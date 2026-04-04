@@ -22,19 +22,26 @@ import {
   Upload,
   FileText
 } from 'lucide-react';
-import { MOCK_CURRICULUMS, MOCK_BATCHES, MOCK_STUDENTS } from '../constants';
+import { MOCK_CURRICULUMS, MOCK_BATCHES, MOCK_STUDENTS, MOCK_INSTITUTIONS } from '../constants';
 import { Assessment, Question, AssessmentRecommendation, Student } from '../types';
 import { generateAssessment, getAssessmentRecommendations } from '../services/geminiService';
 
 interface AssessmentCenterProps {
   assessments: Assessment[];
   setAssessments: React.Dispatch<React.SetStateAction<Assessment[]>>;
+  isEnaraAdmin?: boolean;
 }
 
-export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments, setAssessments }) => {
+export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments, setAssessments, isEnaraAdmin }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('All Subjects');
+  const [difficultyFilter, setDifficultyFilter] = useState('All Difficulties');
+  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [partnerFilter, setPartnerFilter] = useState('All Partners');
+  const [academicYearFilter, setAcademicYearFilter] = useState('All Years');
+  const [batchFilter, setBatchFilter] = useState('All Batches');
   const [creationMode, setCreationMode] = useState<'ai' | 'manual' | 'upload'>('ai');
   
   // AI Generation Form State
@@ -54,6 +61,7 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
   const [editingAssessment, setEditingAssessment] = useState<Assessment | null>(null);
   const [resultsAssessment, setResultsAssessment] = useState<Assessment | null>(null);
   const [selectedStudentSubmission, setSelectedStudentSubmission] = useState<{student: Student, result: any} | null>(null);
+  const [gradingState, setGradingState] = useState<{[key: string]: {score: number, feedback: string}}>({});
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [selectedLink, setSelectedLink] = useState('');
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -334,10 +342,59 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
     }
   };
 
-  const filteredAssessments = assessments.filter(a => 
-    a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleSaveGrades = () => {
+    if (!selectedStudentSubmission || !selectedStudentSubmission.result) return;
+
+    const updatedAnswers = selectedStudentSubmission.result.answers.map((answer: any, idx: number) => {
+      const grading = gradingState[idx];
+      if (grading) {
+        return {
+          ...answer,
+          manualScore: grading.score,
+          manualFeedback: grading.feedback,
+          isManuallyGraded: true,
+          isCorrect: grading.score > 0 // Simple logic for correctness
+        };
+      }
+      return answer;
+    });
+
+    // Calculate new total score if some were manually graded
+    const totalPossible = updatedAnswers.length * 100;
+    const totalEarned = updatedAnswers.reduce((acc: number, curr: any) => acc + (curr.manualScore !== undefined ? curr.manualScore : (curr.isCorrect ? 100 : 0)), 0);
+    const newScore = Math.round((totalEarned / totalPossible) * 100);
+
+    const updatedResult = {
+      ...selectedStudentSubmission.result,
+      answers: updatedAnswers,
+      score: newScore,
+      isManuallyGraded: true,
+      manualTotalScore: newScore
+    };
+
+    // Update the student in MOCK_STUDENTS (in a real app, this would be an API call)
+    // For this demo, we'll just update the local state if we had one, but since it's mock data
+    // we'll just update the selectedStudentSubmission to reflect changes in UI
+    setSelectedStudentSubmission({
+      ...selectedStudentSubmission,
+      result: updatedResult
+    });
+
+    alert('Grades saved successfully!');
+    setGradingState({});
+  };
+
+  const filteredAssessments = assessments.filter(a => {
+    const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         a.subject.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSubject = subjectFilter === 'All Subjects' || a.subject === subjectFilter;
+    const matchesDifficulty = difficultyFilter === 'All Difficulties' || a.difficulty === difficultyFilter;
+    const matchesStatus = statusFilter === 'All Status' || a.status === statusFilter.toLowerCase();
+    const matchesPartner = partnerFilter === 'All Partners' || a.institutionId === partnerFilter;
+    const matchesBatch = batchFilter === 'All Batches' || a.batchId === batchFilter;
+    
+    return matchesSearch && matchesSubject && matchesDifficulty && matchesStatus && matchesPartner && matchesBatch;
+  });
 
   return (
     <div className="p-4 sm:p-8 max-w-[1600px] mx-auto space-y-6 sm:space-y-8">
@@ -387,7 +444,7 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4">
+      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
@@ -398,15 +455,67 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
             className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:border-teal-500 outline-none transition-all text-sm"
           />
         </div>
-        <div className="flex gap-2">
-          <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all text-sm">
-            <Filter size={16} /> Filters
-          </button>
-          <select className="flex-1 sm:flex-none px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold outline-none focus:border-teal-500 bg-white text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {isEnaraAdmin && (
+            <select 
+              value={partnerFilter}
+              onChange={(e) => setPartnerFilter(e.target.value)}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold outline-none focus:border-teal-500 bg-white text-sm"
+            >
+              <option>All Partners</option>
+              {MOCK_INSTITUTIONS.map(inst => (
+                <option key={inst.id} value={inst.id}>{inst.name}</option>
+              ))}
+            </select>
+          )}
+          <select 
+            value={subjectFilter}
+            onChange={(e) => setSubjectFilter(e.target.value)}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold outline-none focus:border-teal-500 bg-white text-sm"
+          >
             <option>All Subjects</option>
-            <option>Mathematics</option>
-            <option>Physics</option>
-            <option>English</option>
+            {Array.from(new Set(assessments.map(a => a.subject))).map(subject => (
+              <option key={subject} value={subject}>{subject}</option>
+            ))}
+          </select>
+          <select 
+            value={difficultyFilter}
+            onChange={(e) => setDifficultyFilter(e.target.value)}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold outline-none focus:border-teal-500 bg-white text-sm"
+          >
+            <option>All Difficulties</option>
+            <option>Easy</option>
+            <option>Medium</option>
+            <option>Hard</option>
+          </select>
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className={`${isEnaraAdmin ? '' : 'col-span-2 sm:col-span-1'} px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold outline-none focus:border-teal-500 bg-white text-sm`}
+          >
+            <option>All Status</option>
+            <option>Upcoming</option>
+            <option>Active</option>
+            <option>Completed</option>
+          </select>
+          <select 
+            value={academicYearFilter}
+            onChange={(e) => setAcademicYearFilter(e.target.value)}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold outline-none focus:border-teal-500 bg-white text-sm"
+          >
+            <option>All Years</option>
+            <option>2023-2024</option>
+            <option>2024-2025</option>
+          </select>
+          <select 
+            value={batchFilter}
+            onChange={(e) => setBatchFilter(e.target.value)}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold outline-none focus:border-teal-500 bg-white text-sm"
+          >
+            <option>All Batches</option>
+            {MOCK_BATCHES.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -604,9 +713,9 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
 
       {/* AI Creation Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-6">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => !isGenerating && setIsModalOpen(false)}></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-slide-in flex flex-col max-h-[90vh]">
+          <div className="relative bg-white rounded-none sm:rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-slide-in flex flex-col h-full sm:h-auto sm:max-h-[90vh]">
             <div className="p-6 sm:p-8 border-b border-slate-100 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
@@ -1123,9 +1232,9 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
 
       {/* Preview Modal */}
       {previewAssessment && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-6">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => !isGenerating && setPreviewAssessment(null)}></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-slide-in flex flex-col max-h-[90vh]">
+          <div className="relative bg-white rounded-none sm:rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden animate-slide-in flex flex-col h-full sm:h-auto sm:max-h-[90vh]">
             <div className="p-6 sm:p-8 border-b border-slate-100 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
@@ -1243,9 +1352,9 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
 
       {/* Results Modal */}
       {resultsAssessment && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-6">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setResultsAssessment(null)}></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden animate-slide-in flex flex-col max-h-[90vh]">
+          <div className="relative bg-white rounded-none sm:rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden animate-slide-in flex flex-col h-full sm:h-auto sm:max-h-[90vh]">
             <div className="p-6 sm:p-8 border-b border-slate-100 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
@@ -1308,52 +1417,74 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100">
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Student</th>
+                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Batch / Class</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Score</th>
                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {MOCK_STUDENTS.filter(s => !resultsAssessment.batchId || s.batchId === resultsAssessment.batchId || s.id === 'STU001').map(student => (
-                        <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center font-bold text-xs shrink-0">
-                                {student.avatar}
+                      {MOCK_STUDENTS.filter(s => !resultsAssessment.batchId || s.batchId === resultsAssessment.batchId || s.id === 'STU001').map(student => {
+                        const result = student.pastResults?.find(r => r.assessmentId === resultsAssessment.id) || (resultsAssessment.id === 'ASM001' ? student.pastResults?.[0] : null);
+                        const isSubmitted = !!result;
+                        const isManuallyGraded = result?.isManuallyGraded;
+                        const score = result?.score;
+                        const studentBatch = MOCK_BATCHES.find(b => b.id === student.batchId);
+
+                        return (
+                          <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                  {student.avatar}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-bold text-slate-900 truncate">{student.name}</p>
+                                  <p className="text-[10px] text-slate-500 truncate">{student.email}</p>
+                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-bold text-slate-900 truncate">{student.name}</p>
-                                <p className="text-[10px] text-slate-500 truncate">{student.email}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-slate-700">{studentBatch?.name || 'Unassigned'}</span>
+                                <span className="text-[9px] text-slate-400 uppercase font-bold">{studentBatch?.academicYear || 'N/A'}</span>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
-                              resultsAssessment.id === 'ASM001' 
-                                ? 'bg-emerald-50 text-emerald-600' 
-                                : 'bg-slate-100 text-slate-400'
-                            }`}>
-                              {resultsAssessment.id === 'ASM001' ? 'SUBMITTED' : 'PENDING'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm font-bold text-slate-900">
-                              {resultsAssessment.id === 'ASM001' ? (student.id === 'STU001' ? '92%' : '85%') : '-'}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <button 
-                              onClick={() => {
-                                const result = student.pastResults?.find(r => r.assessmentId === resultsAssessment.id) || student.pastResults?.[0];
-                                setSelectedStudentSubmission({ student, result });
-                              }}
-                              className="text-teal-600 text-xs font-bold hover:underline"
-                            >
-                              View Details
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col gap-1">
+                                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold w-fit ${
+                                  isSubmitted 
+                                    ? 'bg-emerald-50 text-emerald-600' 
+                                    : 'bg-slate-100 text-slate-400'
+                                }`}>
+                                  {isSubmitted ? 'SUBMITTED' : 'PENDING'}
+                                </span>
+                                {isManuallyGraded && (
+                                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-bold w-fit">
+                                    MANUALLY GRADED
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="text-sm font-bold text-slate-900">
+                                {isSubmitted ? `${score}%` : '-'}
+                              </p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <button 
+                                onClick={() => {
+                                  setSelectedStudentSubmission({ student, result });
+                                }}
+                                className="text-teal-600 text-xs font-bold hover:underline disabled:opacity-30"
+                                disabled={!isSubmitted}
+                              >
+                                View Details
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1374,9 +1505,9 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
 
       {/* Student Submission Detail Modal */}
       {selectedStudentSubmission && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-0 sm:p-6">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedStudentSubmission(null)}></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden animate-slide-in flex flex-col max-h-[90vh]">
+          <div className="relative bg-white rounded-none sm:rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden animate-slide-in flex flex-col h-full sm:h-auto sm:max-h-[90vh]">
             <div className="p-6 sm:p-8 border-b border-slate-100 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
                 <button 
@@ -1450,6 +1581,55 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
                         </div>
                       </div>
 
+                      {/* Manual Grading Section */}
+                      <div className="p-4 bg-indigo-50/30 border border-indigo-100 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-bold text-indigo-600 uppercase flex items-center gap-1">
+                            <Edit size={10} /> Manual Grading & Feedback
+                          </p>
+                          {answer.isManuallyGraded && (
+                            <span className="text-[10px] font-bold text-indigo-500 bg-indigo-100 px-2 py-0.5 rounded">
+                              Manually Graded
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="w-full sm:w-32">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Score (0-100)</label>
+                            <input 
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={gradingState[idx]?.score ?? (answer.manualScore !== undefined ? answer.manualScore : (answer.isCorrect ? 100 : 0))}
+                              onChange={(e) => setGradingState({
+                                ...gradingState,
+                                [idx]: { 
+                                  score: parseInt(e.target.value) || 0, 
+                                  feedback: gradingState[idx]?.feedback ?? (answer.manualFeedback || '') 
+                                }
+                              })}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:border-indigo-500 outline-none"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Feedback to Student</label>
+                            <textarea 
+                              value={gradingState[idx]?.feedback ?? (answer.manualFeedback || '')}
+                              onChange={(e) => setGradingState({
+                                ...gradingState,
+                                [idx]: { 
+                                  score: gradingState[idx]?.score ?? (answer.manualScore !== undefined ? answer.manualScore : (answer.isCorrect ? 100 : 0)), 
+                                  feedback: e.target.value 
+                                }
+                              })}
+                              placeholder="Provide specific feedback on this answer..."
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm h-20 resize-none focus:border-indigo-500 outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="p-4 bg-teal-50/50 border border-teal-100 rounded-xl">
                         <p className="text-[10px] font-bold text-teal-600 uppercase mb-2 flex items-center gap-1">
                           <Sparkles size={10} /> AI Model Answer & Feedback
@@ -1464,13 +1644,30 @@ export const AssessmentCenter: React.FC<AssessmentCenterProps> = ({ assessments,
               </div>
             </div>
 
-            <div className="p-6 sm:p-8 border-t border-slate-100 bg-slate-50/50 flex justify-end shrink-0">
-              <button 
-                onClick={() => setSelectedStudentSubmission(null)}
-                className="w-full sm:w-auto px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition-all text-sm sm:text-base"
-              >
-                Close Review
-              </button>
+            <div className="p-6 sm:p-8 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+              <div className="text-xs text-slate-500 italic">
+                {Object.keys(gradingState).length > 0 && (
+                  <span className="text-indigo-600 font-bold flex items-center gap-1">
+                    <Sparkles size={12} /> You have unsaved grading changes
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-4 w-full sm:w-auto">
+                {Object.keys(gradingState).length > 0 && (
+                  <button 
+                    onClick={handleSaveGrades}
+                    className="flex-1 sm:flex-none px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-900/10 hover:bg-indigo-700 transition-all text-sm sm:text-base flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 size={18} /> Save Grades
+                  </button>
+                )}
+                <button 
+                  onClick={() => setSelectedStudentSubmission(null)}
+                  className="flex-1 sm:flex-none px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition-all text-sm sm:text-base"
+                >
+                  Close Review
+                </button>
+              </div>
             </div>
           </div>
         </div>

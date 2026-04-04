@@ -18,7 +18,15 @@ import {
   Menu,
   X,
   ChevronLeft,
-  Building2
+  Building2,
+  Zap,
+  Sparkles,
+  TrendingUp,
+  FileText,
+  Activity,
+  Target,
+  DollarSign,
+  ShieldCheck
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -62,6 +70,9 @@ export const Header: React.FC<{
     }
   };
 
+  const isEnaraAdmin = role === 'enara-admin';
+  const brandColor = isEnaraAdmin ? 'indigo' : 'teal';
+
   return (
     <header className="sticky top-0 z-50 glass-panel border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
       <div className="flex items-center gap-1.5 sm:gap-4">
@@ -85,12 +96,12 @@ export const Header: React.FC<{
         )}
 
         <div className="flex items-center gap-1.5 sm:gap-2 ml-0.5 sm:ml-0">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:xl bg-teal-400/20 flex items-center justify-center border border-teal-400/30">
-            <span className="text-xl sm:text-2xl font-bold text-white">E</span>
+          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:xl ${isEnaraAdmin ? 'bg-indigo-600 shadow-lg shadow-indigo-200' : 'bg-teal-400/20 border border-teal-400/30'} flex items-center justify-center`}>
+            <span className={`text-xl sm:text-2xl font-bold ${isEnaraAdmin ? 'text-white' : 'text-white'}`}>E</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-lg sm:text-xl font-bold text-teal-900 leading-none">Enara</span>
-            <span className="text-[6px] sm:text-[8px] font-bold text-teal-600 uppercase tracking-widest mt-0.5">Intelligence you can learn from.</span>
+            <span className={`text-lg sm:text-xl font-bold ${isEnaraAdmin ? 'text-slate-900' : 'text-teal-900'} leading-none`}>Enara {isEnaraAdmin && <span className="text-indigo-600">Executive</span>}</span>
+            <span className={`text-[6px] sm:text-[8px] font-bold ${isEnaraAdmin ? 'text-indigo-600' : 'text-teal-600'} uppercase tracking-widest mt-0.5`}>Intelligence you can learn from.</span>
           </div>
         </div>
       </div>
@@ -98,7 +109,7 @@ export const Header: React.FC<{
       <div className="flex items-center gap-1.5 sm:gap-6">
         <button 
           onClick={handleShareApp}
-          className="flex items-center gap-2 px-2 sm:px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-all text-xs sm:text-sm font-medium border border-slate-200"
+          className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-all text-xs sm:text-sm font-medium border border-slate-200"
         >
           <Share2 size={14} />
           <span className="hidden md:inline">Share App</span>
@@ -125,7 +136,7 @@ export const Header: React.FC<{
               <span className="text-xs sm:text-sm font-semibold text-slate-800">{userName}</span>
               <span className="text-[10px] sm:text-xs text-slate-500 capitalize">{role}</span>
             </div>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full teal-gradient flex items-center justify-center text-white text-[10px] sm:text-xs font-bold">
+            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full ${isEnaraAdmin ? 'bg-slate-900' : 'teal-gradient'} flex items-center justify-center text-white text-[10px] sm:text-xs font-bold`}>
               {userName.split(' ').map(n => n[0]).join('')}
             </div>
           </button>
@@ -155,20 +166,30 @@ export const AdminSidebar: React.FC<{
   isOpen?: boolean; 
   onClose?: () => void;
   isEnaraAdmin?: boolean;
-}> = ({ activeTab, onNavigate, isOpen, onClose, isEnaraAdmin }) => {
+  role?: 'admin' | 'enara-admin';
+}> = ({ activeTab, onNavigate, isOpen, onClose, isEnaraAdmin, role }) => {
   const adminMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'course-intelligence', label: 'Course Intelligence', icon: Activity },
+    { id: 'institution-analytics', label: 'Governance', icon: ShieldCheck },
     { id: 'students', label: 'Students', icon: Users },
     { id: 'curriculum', label: 'Curriculum', icon: BookOpen },
-    { id: 'assessments', label: 'Assessments', icon: ClipboardCheck },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'assignments', label: 'Assignments', icon: ClipboardCheck },
+    { id: 'credits', label: 'AI Credits', icon: Zap },
+    { id: 'engagement', label: 'Research & Insights', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   const enaraMenuItems = [
     { id: 'dashboard', label: 'Executive Overview', icon: LayoutDashboard },
-    { id: 'institutions', label: 'Institutions', icon: Building2 },
-    { id: 'analytics', label: 'Global Analytics', icon: BarChart3 },
+    { id: 'revenue', label: 'Revenue & Growth', icon: TrendingUp },
+    { id: 'institutions', label: 'Institutions (CRM)', icon: Building2 },
+    { id: 'contracts', label: 'Contracts', icon: FileText },
+    { id: 'health', label: 'Platform Health', icon: Activity },
+    { id: 'roi', label: 'ROI & Courses', icon: Target },
+    { id: 'financials', label: 'Financials', icon: DollarSign },
+    { id: 'audit', label: 'Audit & Compliance', icon: ShieldCheck },
+    { id: 'integrations', label: 'Integrations', icon: Share2 },
     { id: 'settings', label: 'Platform Settings', icon: Settings },
   ];
 
@@ -198,10 +219,10 @@ export const AdminSidebar: React.FC<{
       `}>
         <div className="lg:hidden px-6 mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg teal-gradient flex items-center justify-center text-white font-bold">E</div>
+            <div className={`w-8 h-8 rounded-lg ${isEnaraAdmin ? 'bg-indigo-600 shadow-lg shadow-indigo-200' : 'teal-gradient'} flex items-center justify-center text-white font-bold`}>E</div>
             <div className="flex flex-col">
-              <span className="text-xl font-bold text-teal-900 leading-none">Enara</span>
-              <span className="text-[6px] font-bold text-teal-600 uppercase tracking-widest">Intelligence you can learn from.</span>
+              <span className={`text-xl font-bold ${isEnaraAdmin ? 'text-slate-900' : 'text-teal-900'} leading-none`}>Enara {isEnaraAdmin && <span className="text-indigo-600">Executive</span>}</span>
+              <span className={`text-[6px] font-bold ${isEnaraAdmin ? 'text-indigo-600' : 'text-teal-600'} uppercase tracking-widest mt-0.5`}>Intelligence you can learn from.</span>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600">
@@ -213,31 +234,45 @@ export const AdminSidebar: React.FC<{
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavigate(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                  isActive 
-                  ? 'bg-teal-50 text-teal-700 font-semibold' 
-                  : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <Icon size={20} className={isActive ? 'text-teal-600' : 'text-slate-400'} />
-                {item.label}
-              </button>
-            );
+    const activeColorClass = isEnaraAdmin 
+      ? 'bg-indigo-50 text-indigo-700 font-semibold' 
+      : 'bg-teal-50 text-teal-700 font-semibold';
+    
+    const activeIconClass = isEnaraAdmin ? 'text-indigo-600' : 'text-teal-600';
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => handleNavigate(item.id)}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+          isActive 
+          ? activeColorClass 
+          : 'text-slate-600 hover:bg-slate-50'
+        }`}
+      >
+        <Icon size={20} className={isActive ? activeIconClass : 'text-slate-400'} />
+        {item.label}
+      </button>
+    );
           })}
         </nav>
         
         <div className="px-6 py-4 border-t border-gray-100">
-          <div className="bg-slate-50 rounded-2xl p-4 text-center">
-            <PieChart size={24} className="mx-auto text-teal-600 mb-2" />
-            <p className="text-xs font-semibold text-slate-900">Weekly Goal</p>
-            <div className="mt-2 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-              <div className="h-full bg-teal-600" style={{ width: '75%' }}></div>
+          <div className={`${isEnaraAdmin ? 'bg-indigo-900 text-white' : 'bg-slate-50'} rounded-2xl p-4 text-center shadow-lg shadow-indigo-100`}>
+            {isEnaraAdmin ? (
+              <Sparkles size={24} className="mx-auto text-indigo-400 mb-2" />
+            ) : (
+              <PieChart size={24} className="mx-auto text-teal-600 mb-2" />
+            )}
+            <p className={`text-xs font-semibold ${isEnaraAdmin ? 'text-white' : 'text-slate-900'}`}>
+              {isEnaraAdmin ? 'Executive Summary' : 'Weekly Goal'}
+            </p>
+            <div className={`mt-2 h-1.5 w-full ${isEnaraAdmin ? 'bg-white/20' : 'bg-slate-200'} rounded-full overflow-hidden`}>
+              <div className={`h-full ${isEnaraAdmin ? 'bg-indigo-400' : 'bg-teal-600'}`} style={{ width: '75%' }}></div>
             </div>
-            <p className="mt-2 text-[10px] text-slate-500">75% Institutional Progress</p>
+            <p className={`mt-2 text-[10px] ${isEnaraAdmin ? 'text-indigo-200' : 'text-slate-500'}`}>
+              {isEnaraAdmin ? 'Q1 Revenue Target: 75%' : '75% Institutional Progress'}
+            </p>
           </div>
         </div>
       </aside>
@@ -262,7 +297,7 @@ export const StudentLayout: React.FC<{
         {/* Sub Navigation */}
         <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-2 overflow-x-auto whitespace-nowrap no-scrollbar">
           <div className="flex gap-4 sm:gap-8">
-            {['courses', 'assessments'].map((tab) => (
+            {['courses', 'assessments', 'results'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => onNavigate(tab)}
@@ -272,7 +307,7 @@ export const StudentLayout: React.FC<{
                   : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
               >
-                {tab}
+                {tab === 'results' ? 'Test Results' : tab}
               </button>
             ))}
           </div>

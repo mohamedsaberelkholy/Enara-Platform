@@ -7,18 +7,36 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { CurriculumCenter } from './pages/CurriculumCenter';
 import { StudentLayout, AdminSidebar, Header } from './components/Layout';
 import { StudentManagement } from './pages/StudentManagement';
+import { StudentProfile } from './pages/StudentProfile';
+import { AIAssistant } from './components/AIAssistant';
+import { ResearchInsights } from './pages/ResearchInsights';
 import { AssessmentInterface } from './pages/AssessmentInterface';
 import { AssessmentCenter } from './pages/AssessmentCenter';
 import { ManagementDashboard } from './pages/ManagementDashboard';
+import { AICredits } from './pages/AICredits';
 import { EnaraAdminDashboard } from './pages/EnaraAdminDashboard';
-import { MOCK_ASSESSMENTS, MOCK_COURSES } from './constants';
-import { Assessment } from './types';
+import { PartnerCredits } from './pages/PartnerCredits';
+import { TestResults } from './pages/TestResults';
+import { RevenueGrowth } from './components/enara/RevenueGrowth';
+import { InstitutionCRM } from './components/enara/InstitutionCRM';
+import { ContractManagement } from './components/enara/ContractManagement';
+import { PlatformHealth } from './components/enara/PlatformHealth';
+import { AuditCompliance } from './components/enara/AuditCompliance';
+import { ROIMetrics } from './components/enara/ROIMetrics';
+import { Financials } from './components/enara/Financials';
+import { InstitutionAnalytics } from './pages/InstitutionAnalytics';
+import { CourseTeacherAnalytics } from './pages/CourseTeacherAnalytics';
+import { StudentDeepAnalytics } from './pages/StudentDeepAnalytics';
+import { Integrations } from '@/pages/Integrations';
+import { MOCK_ASSESSMENTS, MOCK_COURSES, MOCK_STUDENTS } from './constants';
+import { Assessment, Student } from './types';
 import { CheckCircle2 } from 'lucide-react';
 
 type AppState = {
   role: 'student' | 'admin' | 'enara-admin' | null;
   page: string;
   activeAssessment: Assessment | null;
+  selectedStudent: Student | null;
   sharedCourseId?: string | null;
   sharedAssessmentId?: string | null;
   completedAssessmentIds: Set<string>;
@@ -26,6 +44,7 @@ type AppState = {
 
 const App: React.FC = () => {
   const [assessments, setAssessments] = useState<Assessment[]>(MOCK_ASSESSMENTS);
+  const [students, setStudents] = useState<Student[]>(MOCK_STUDENTS);
   const [state, setState] = useState<AppState>(() => {
     const params = new URLSearchParams(window.location.search);
     const courseId = params.get('course');
@@ -40,6 +59,7 @@ const App: React.FC = () => {
       role: null,
       page: 'courses',
       activeAssessment: null,
+      selectedStudent: null,
       sharedCourseId: courseId,
       sharedAssessmentId: assessmentId,
       completedAssessmentIds: new Set<string>()
@@ -79,7 +99,15 @@ const App: React.FC = () => {
   };
 
   const navigate = (page: string) => {
-    setState(prev => ({ ...prev, page, activeAssessment: null, sharedCourseId: null }));
+    setState(prev => ({ ...prev, page, activeAssessment: null, selectedStudent: null, sharedCourseId: null }));
+  };
+
+  const viewStudentProfile = (student: Student) => {
+    setState(prev => ({ ...prev, page: 'student-profile', selectedStudent: student }));
+  };
+
+  const viewStudentDeepAnalytics = (student: Student) => {
+    setState(prev => ({ ...prev, page: 'student-analytics', selectedStudent: student }));
   };
 
   const startAssessment = (assessmentId: string) => {
@@ -166,6 +194,7 @@ const App: React.FC = () => {
       >
         {state.page === 'dashboard' && state.role !== 'student' && <StudentDashboard onStartAssessment={startAssessment} onNavigate={navigate} assessments={assessments} />}
         {state.page === 'courses' && <CoursePage initialCourseId={state.sharedCourseId} courses={MOCK_COURSES} />}
+        {state.page === 'results' && <TestResults completedIds={state.completedAssessmentIds} />}
         {state.page === 'assessments' && (
           <div className="p-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Your Assessments</h2>
@@ -201,10 +230,31 @@ const App: React.FC = () => {
           role="enara-admin" 
           userName={userName} 
           onLogout={handleLogout} 
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onBack={state.page !== 'dashboard' ? () => navigate('dashboard') : undefined}
         />
-        <div className="flex-1 overflow-y-auto">
-          {state.page === 'dashboard' && <EnaraAdminDashboard />}
+        <div className="flex-1 flex overflow-hidden relative">
+          <AdminSidebar 
+            activeTab={state.page} 
+            onNavigate={navigate} 
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            isEnaraAdmin={true}
+            role="enara-admin"
+          />
+          <main className="flex-1 overflow-y-auto p-8">
+            {state.page === 'dashboard' && <EnaraAdminDashboard onNavigate={navigate} />}
+            {state.page === 'revenue' && <RevenueGrowth />}
+            {state.page === 'institutions' && <InstitutionCRM onNavigate={navigate} />}
+            {state.page === 'contracts' && <ContractManagement />}
+            {state.page === 'health' && <PlatformHealth />}
+            {state.page === 'roi' && <ROIMetrics />}
+            {state.page === 'financials' && <Financials />}
+            {state.page === 'audit' && <AuditCompliance />}
+            {state.page === 'integrations' && <Integrations />}
+            {state.page === 'settings' && <div className="p-20 text-center text-slate-400">Platform Global Settings</div>}
+          </main>
+          <AIAssistant students={students} assessments={assessments} />
         </div>
       </div>
     );
@@ -225,23 +275,44 @@ const App: React.FC = () => {
           onNavigate={navigate} 
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
+          role="admin"
         />
         <main className="flex-1 overflow-y-auto">
-          {state.page === 'dashboard' && <AdminDashboard onNavigate={navigate} />}
+          {state.page === 'dashboard' && <AdminDashboard onNavigate={navigate} students={students} setStudents={setStudents} onViewStudent={viewStudentProfile} />}
+          {state.page === 'course-intelligence' && <CourseTeacherAnalytics onViewStudent={viewStudentDeepAnalytics} />}
+          {state.page === 'institution-analytics' && <InstitutionAnalytics />}
+          {state.page === 'student-analytics' && state.selectedStudent && (
+            <StudentDeepAnalytics student={state.selectedStudent} onBack={() => navigate('dashboard')} />
+          )}
           {state.page === 'partners' && <div className="p-20 text-center text-slate-400">Partner Management & CRM</div>}
           {state.page === 'programmes' && <div className="p-20 text-center text-slate-400">Programmes & Cohort Management</div>}
-          {state.page === 'students' && <StudentManagement />}
-          {state.page === 'engagement' && <div className="p-20 text-center text-slate-400">Detailed Engagement Analytics</div>}
+          {state.page === 'students' && (
+            <StudentManagement 
+              students={students} 
+              setStudents={setStudents} 
+              onViewStudent={viewStudentProfile} 
+              onViewDeepAnalytics={viewStudentDeepAnalytics}
+            />
+          )}
+          {(state.page === 'engagement' || state.page === 'analytics') && <ResearchInsights />}
           {state.page === 'outcomes' && <div className="p-20 text-center text-slate-400">Learning Outcomes & Success Metrics</div>}
           {state.page === 'operations' && <div className="p-20 text-center text-slate-400">Operational Efficiency & Resource Management</div>}
-          {state.page === 'integrations' && <div className="p-20 text-center text-slate-400">External System Integrations</div>}
+          {state.page === 'integrations' && <Integrations />}
           {state.page === 'governance' && <div className="p-20 text-center text-slate-400">Platform Governance & Security</div>}
           {state.page === 'compliance' && <div className="p-20 text-center text-slate-400">Accessibility & Compliance Audits</div>}
           {state.page === 'curriculum' && <CurriculumCenter />}
-          {state.page === 'assessments' && <AssessmentCenter assessments={assessments} setAssessments={setAssessments} />}
-          {state.page === 'management' && <ManagementDashboard />}
+          {state.page === 'assignments' && <AssessmentCenter assessments={assessments} setAssessments={setAssessments} />}
+          {state.page === 'credits' && <AICredits />}
           {state.page === 'settings' && <div className="p-20 text-center text-slate-400">Institution Configuration</div>}
+          {state.page === 'student-profile' && state.selectedStudent && (
+            <StudentProfile 
+              student={state.selectedStudent} 
+              onBack={() => navigate('students')} 
+              onViewDeepAnalytics={() => viewStudentDeepAnalytics(state.selectedStudent!)}
+            />
+          )}
         </main>
+        <AIAssistant students={students} assessments={assessments} />
       </div>
     </div>
   );
